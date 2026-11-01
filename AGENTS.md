@@ -68,7 +68,7 @@ This file is operational documentation. **Read it before changing code.** The Ma
 - **Purchased renewal reuses the same duration modal as purchase:** Figma `7353:28234`, BottomSheet `7353:30359`, data `7353:30358`. `RenewAccessSheet` must stay a thin wrapper around `PurchaseDurationSheet`: open state resets to **1 month**, slider/pricing/discount/CTA/safe-area behavior are identical. Renewal copy is `На какой срок продлим доступ?` and its CTA is `Продлить за N ₽`; purchase remains `На какой срок оформим доступ?` / `Оформить за N ₽`. Proceed closes the sheet and continues through the existing Checkout route; never add a renewal App screen or renewal-specific duration mechanics.
 - Checkout bonus info follows `7223:25096` / sheet `7223:25222`: `бонусный баланс` has a primary-white 16 px info glyph; the sheet heading/aria label is `Что такое бонусный баланс?`; tapping it opens the shared BottomSheet with the three dotline explanation rows. This concrete info sheet opts into additive `32px + system safe bottom`; the shared action-sheet default remains `max(32px, safe area)`. Never draw a fake Home Indicator.
 - Country `/характеристики` compact Block uses padding `16px 16px 20px` (20 px only on the bottom).
-- Current shared extra-device price is **99 ₽ / month** and must come from `EXTRA_DEVICE_PRICE` everywhere it is displayed/calculated.
+- Current shared extra-device price is **69 ₽ / month** (product owner decision 2026-11-01) and must come from `EXTRA_DEVICE_PRICE` everywhere it is displayed/calculated.
 - Product rule for country access: 5 device slots are included; additional slots are an optional paid extension.
 
 ## Verification before handing off an archive

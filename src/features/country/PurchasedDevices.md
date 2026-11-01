@@ -13,7 +13,7 @@ Shared `/мои устройства` section for purchased Country variations.
 - Technical works: `6521:47893`.
 - Device Card master geometry: 68 px high, 12 px padding, 16 px radius, 44 px platform tile, 8 px tile/text gap, 24 px more glyph.
 - Section heading uses 16/20 Martian Grotesk and a 24 px outlined count control.
-- Limit-at-capacity state adds the warning count (`6/6` + warning icon), warning Card, and 56 px `Увеличить лимит` CTA before device cards.
+- Limit-at-capacity state adds the warning count (`6/6` + warning icon), warning Card, and 56 px `Увеличить лимит` CTA before device cards. Its subtitle `+1 устройство за N ₽/мес.` reads N from shared `EXTRA_DEVICE_PRICE` (currently 69 ₽); never hard-code the price literal.
 - Expiring-extra-slot below capacity uses Figma `6502:41574`: after deleting from `6/6` to `5/6` while the expiry banner is still open, the CTA disappears, the count becomes primary-white `5/6` + white warning glyph, and the notice becomes regular `bg/surface` with primary-white iconography.
 - Device-list spacing is 8 px.
 

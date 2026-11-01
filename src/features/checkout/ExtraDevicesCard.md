@@ -18,7 +18,7 @@ Checkout control for additional device slots.
 - Country access includes 5 slots; extra slots are paid additions.
 - The paid extra-device stepper is limited to **0–5 additional devices**. At 5, the plus control is disabled and further increments are clamped.
 - Both the unit caption and calculated total use shared `EXTRA_DEVICE_PRICE`; never duplicate the price literal in copy.
-- Current Country characteristics reference shows **99 ₽ / month**, so the shared pricing constant is 99 ₽ and Checkout follows it automatically.
+- Product owner decision (2026-11-01): extra-device price is **69 ₽ / month** everywhere (Figma: «дальше по 69 ₽», 138 ₽ = 2 × 69). The shared constant is 69 ₽ and Checkout follows it automatically.
 
 ## Documentation update rule
 

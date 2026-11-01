@@ -726,3 +726,8 @@ Three-pass audit against the current Figma library and live prototype instances:
 - Fixed the duration-sheet CTA rising above the shared action-tabbar baseline.
 - Root cause was an obsolete 76 px `.sheet-button-slot` (56 px button + 20 px tail) combined with BottomSheet already owning the complete bottom clearance.
 - `.sheet-button-slot` is now exactly 56 px; no screen/shell/safe-area geometry was changed.
+
+## 2026-11-01 — Extra-device price 69 ₽
+- Product owner decision: extra-device price is 69 ₽ / month everywhere. `EXTRA_DEVICE_PRICE` changed 99 → 69.
+- Country `Увеличить лимит` subtitle no longer hard-codes the price; it reads `EXTRA_DEVICE_PRICE`.
+- Location access `pricePerMonth` values in `src/config/locations.js` are country access prices, not extra-device prices, and were not changed.
