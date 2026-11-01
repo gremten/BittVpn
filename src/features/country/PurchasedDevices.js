@@ -14,6 +14,7 @@ import {
   CheckboxLabel,
   ContextMenu,
 } from '../../components/ui';
+import { EXTRA_DEVICE_PRICE } from '../../config/pricing';
 import DeviceDeleteSheet, { pluralizeDevice } from './DeviceDeleteSheet';
 import { syncTelegramChrome } from '../../telegram';
 import moreIcon from '../../assets/icons/nav/icn_m_more.svg';
@@ -733,7 +734,7 @@ export default function PurchasedDevices({
           >
             <span className="country-limit-upgrade__copy">
               <span>Увеличить лимит</span>
-              <small>+1 устройство за 69 ₽/мес.</small>
+              <small>{`+1 устройство за ${EXTRA_DEVICE_PRICE} ₽/мес.`}</small>
             </span>
           </Button>
         )}

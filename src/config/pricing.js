@@ -1,5 +1,5 @@
 export const MAX_MONTHS = 6;
-export const EXTRA_DEVICE_PRICE = 99;
+export const EXTRA_DEVICE_PRICE = 69;
 
 /*
   Duration discount curve from the updated purchase-sheet design.
