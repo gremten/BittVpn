@@ -1,0 +1,57 @@
+:root {
+  --font-body: "Golos UI", "Golos Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-body);
+  color: #ffffff;
+  background: #050607;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+
+  --app-max-width: 768px;
+  /* Shared component geometry. Screen scroll/content reserves stay screen-owned
+     and must not be normalized through these component tokens. */
+  --purchase-tabbar-height: 96px;
+  --content-tabbar-gap: 24px;
+  --app-tabbar-top-padding: 20px;
+  --app-tabbar-inline-padding: 20px;
+  --app-tabbar-button-wrap-height: 76px;
+  --app-tabbar-navigation-wrap-height: 72px;
+
+  /* Telegram Mini Apps exposes these variables through telegram-web-app.js.
+     When opened as a regular website we fall back to browser safe-area env()
+     and the dynamic viewport. */
+  /* Keep system safe-area and Telegram content safe-area separate.
+     In fullscreen Telegram's translucent header controls can overlay the WebView,
+     while the iOS Home Indicator belongs to the system safe area. */
+  --system-safe-top: max(var(--tg-safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --system-safe-right: max(var(--tg-safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
+  --system-safe-bottom: max(var(--tg-safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
+  --system-safe-left: max(var(--tg-safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
+
+  --content-safe-top: var(--tg-content-safe-area-inset-top, 0px);
+  --content-safe-right: var(--tg-content-safe-area-inset-right, 0px);
+  --content-safe-bottom: var(--tg-content-safe-area-inset-bottom, 0px);
+  --content-safe-left: var(--tg-content-safe-area-inset-left, 0px);
+
+  --app-safe-top: max(var(--content-safe-top), var(--system-safe-top));
+  --app-safe-right: max(var(--content-safe-right), var(--system-safe-right));
+  --app-safe-bottom: max(var(--content-safe-bottom), var(--system-safe-bottom));
+  /* Navigation keeps its own Figma floor. Action surfaces and BottomSheets
+     share ONE CTA-edge clearance token so their primary buttons cannot drift
+     even when Telegram reports different safe-area values across runtimes. */
+  --app-navigation-safe-bottom: max(32px, var(--app-safe-bottom));
+  --app-action-safe-bottom: max(34px, var(--system-safe-bottom));
+  --app-bottom-cta-clearance: calc(20px + var(--app-action-safe-bottom));
+  --app-safe-left: max(var(--content-safe-left), var(--system-safe-left));
+  --app-viewport-height: var(--tg-viewport-stable-height, 100dvh);
+  --tabbar-native-bg: #12161c;
+  --sheet-native-bg: #14171d;
+  --bg-page: #0a0c0f;
+  --bg-surface: #161a20;
+  --bg-elevated: #242a33;
+  --bg-slider: #12151d;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-on-color: #0a0c0f;
+  --border-primary-soft: rgba(233, 240, 243, 0.15);
+  --border-tertiary: rgba(138, 140, 143, 0.15);
+}

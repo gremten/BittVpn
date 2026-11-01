@@ -1,0 +1,7 @@
+@font-face {
+  font-family: "Golos UI";
+  src: url("./GolosUI-VF.woff2") format("woff2-variations");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}

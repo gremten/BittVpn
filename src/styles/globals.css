@@ -1,0 +1,359 @@
+@import "./tokens.css";
+
+@font-face {
+  font-family: "Martian Grotesk";
+  src: url("../fonts/MartianGrotesk.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 1000;
+  font-stretch: 75% 200%;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Nothing Font";
+  src: url("../fonts/nothing-font.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* In Telegram fullscreen the native Close / menu controls are transparent
+   overlays. If contentSafeAreaInset already includes them, max() keeps that
+   larger value. If it does not (seen on iOS), reserve a 48 px header row.
+   .country-content adds the requested 16 px gap after this clearance. */
+html.is-telegram-mini-app.is-telegram-fullscreen {
+  --app-safe-top: max(
+    var(--content-safe-top),
+    calc(var(--system-safe-top) + 48px)
+  );
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  /* Telegram Mini App viewport is intentionally fixed-scale. Horizontal and
+     vertical panning remain available; pinch-to-zoom is not. */
+  touch-action: pan-x pan-y;
+}
+
+html {
+  background: var(--bg-page);
+}
+
+body {
+  min-height: var(--app-viewport-height);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+[role="slider"]:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.78);
+  outline-offset: 2px;
+}
+
+.preview-stage {
+  width: 100%;
+  min-height: var(--app-viewport-height);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0;
+  background: #050607;
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: var(--app-max-width);
+  min-height: var(--app-viewport-height);
+  overflow-x: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-page);
+}
+
+.scroll-area {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  overflow: visible;
+}
+
+/* Desktop / Telegram Desktop presentation
+   ---------------------------------------
+   The product itself stays responsive on iOS/Android. On a PC we present the
+   same mobile UI inside the original 402 × 874 prototype viewport instead of
+   stretching cards and the slider across the whole WebView. */
+html.is-desktop-runtime {
+  --app-max-width: 402px;
+  --app-viewport-height: min(874px, 100dvh);
+}
+
+html.is-desktop-runtime,
+html.is-desktop-runtime body,
+html.is-desktop-runtime #root {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+html.is-desktop-runtime body {
+  background: #050607;
+}
+
+html.is-desktop-runtime .preview-stage {
+  height: 100dvh;
+  min-height: 100dvh;
+  align-items: center;
+  overflow: hidden;
+}
+
+html.is-desktop-runtime .app-shell {
+  width: min(402px, 100vw);
+  max-width: 402px;
+  height: min(874px, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+
+html.is-desktop-runtime .scroll-area {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html.is-desktop-runtime .scroll-area::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.purchase-cta.bitt-button,
+.sheet-buy-button.bitt-button,
+.checkout-payment-button.bitt-button { max-width:none; }
+.purchase-cta-copy { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.purchase-cta-copy > span { font:inherit; }
+.purchase-cta-copy small { font-family:var(--font-body); font-size:14px; line-height:18px; font-weight:400; }
+.checkout-device-control .bitt-icon-button { padding:0; }
+.checkout-device-control__minus:disabled { opacity:0; pointer-events:none; }
+.checkout-bonus-option.bitt-chip { width:auto; }
+
+/* Figma text style: body/caption-striked (S:eea262...). */
+.caption-striked {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-decoration-line: line-through;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: none;
+  text-underline-position: from-font;
+}
+
+
+/* Initial font/readiness skeleton ------------------------------------------------
+   Custom fonts are part of the final geometry. Until all required app faces are
+   ready, render only canonical skeletons so fallback font metrics never flash. */
+.app-loading-scroll-area {
+  min-height:var(--app-viewport-height);
+  background:var(--bg-page);
+}
+.app-loading-content {
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  padding:
+    calc(16px + var(--app-safe-top))
+    calc(16px + var(--app-safe-right))
+    var(--app-tabbar-navigation-content-reserve)
+    calc(16px + var(--app-safe-left));
+}
+.app-loading-logo {
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.app-loading-promo.bitt-block {
+  height:170px;
+  min-height:170px;
+  padding:0;
+}
+.app-loading-section {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.app-loading-section-bar {
+  width:100%;
+  min-height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.app-loading-stack {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.app-loading-card.bitt-card {
+  padding:0;
+}
+.app-loading-card--68.bitt-card {
+  height:68px;
+  min-height:68px;
+}
+.app-loading-card--100.bitt-card {
+  height:100px;
+  min-height:100px;
+}
+.app-loading-referral.bitt-block {
+  height:168px;
+  min-height:168px;
+  padding:0;
+}
+.app-loading-navigator {
+  position:fixed;
+  z-index:60;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:min(100%, var(--app-max-width));
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:
+    20px
+    calc(20px + var(--app-safe-right))
+    max(32px, var(--app-safe-bottom))
+    calc(20px + var(--app-safe-left));
+  pointer-events:none;
+}
+html.is-desktop-runtime .app-loading-navigator {
+  position:absolute;
+  left:0;
+  right:0;
+  width:100%;
+  transform:none;
+}
+
+/* Global transient acknowledgement stack. The base toast keeps the exact
+   Figma geometry at y=118 in the 402px Telegram frame. Motion follows the
+   supplied reference's soft scale/fade character while entering from above
+   into the same anchor; older toasts recede upward with spring + scale. */
+.app-toast-stack {
+  position: fixed;
+  z-index: 120;
+  left: 50%;
+  top: calc(20px + var(--app-safe-top));
+  width: min(calc(100% - 40px), calc(var(--app-max-width) - 40px));
+  height: 52px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.app-toast-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 52px;
+  transform-origin: center center;
+  pointer-events: none;
+  overflow: hidden;
+  border: 1px solid rgba(138, 140, 143, 0.15);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.60);
+  /* The visual glass surface lives on the Motion layer itself so the
+     backdrop filter keeps sampling the real page even while the toast stack
+     is translated/scaled. This also makes the blur follow an active swipe. */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: none;
+  will-change: transform, opacity;
+}
+
+.app-toast {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  opacity: 1;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  border-radius: inherit;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.app-toast--interactive {
+  pointer-events: auto;
+}
+
+.app-toast--dismissing {
+  pointer-events: none;
+}
+
+.app-toast__icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: block;
+  overflow: visible;
+}
+
+.app-toast__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+html.is-desktop-runtime .app-toast-stack {
+  position: absolute;
+  top: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast { transition: none; }
+}
+

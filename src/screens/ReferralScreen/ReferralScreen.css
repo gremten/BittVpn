@@ -1,0 +1,251 @@
+.referral-scroll-area {
+  position:relative;
+  isolation:isolate;
+  min-height:var(--app-viewport-height);
+  background:var(--bg-page);
+}
+.referral-rain-clip {
+  position:absolute;
+  z-index:0;
+  left:0;
+  right:0;
+  top:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.referral-rain-video-host {
+  position:absolute;
+  inset:0;
+  display:block;
+  pointer-events:none;
+}
+.referral-rain-video {
+  position:absolute;
+  left:50%;
+  top:0;
+  display:block;
+  width:600px;
+  height:440px;
+  max-width:none;
+  overflow:hidden;
+  transform:translateX(-50%);
+  object-fit:fill;
+  opacity:.2;
+  pointer-events:none;
+}
+.referral-rain-video::-webkit-media-controls {
+  display:none !important;
+}
+.referral-screen-content {
+  position:relative;
+  z-index:1;
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  padding:
+    calc(16px + var(--app-safe-top))
+    calc(20px + var(--app-safe-right))
+    calc(56px + 20px + 24px + max(32px, var(--app-safe-bottom)))
+    calc(20px + var(--app-safe-left));
+}
+.referral-balance {
+  width:100%;
+  min-height:104px;
+  padding:32px 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.referral-balance strong {
+  color:#fff;
+  font-family:"Martian Grotesk",var(--font-body);
+  font-size:32px;
+  font-weight:500;
+  line-height:40px;
+}
+.referral-balance--empty strong {
+  font-size:24px;
+  line-height:32px;
+}
+.referral-balance span {
+  color:rgba(255,255,255,.5);
+  font-size:14px;
+  line-height:18px;
+}
+.referral-stats {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.referral-stats__pair {
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:8px;
+}
+.referral-stat-card {
+  min-height:76px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.referral-stat-card__copy {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:8px;
+}
+.referral-stat-card__copy b {
+  color:#fff;
+  font-size:16px;
+  font-weight:400;
+  line-height:20px;
+  white-space:nowrap;
+}
+.referral-stat-card__copy small {
+  color:rgba(255,255,255,.5);
+  font-size:12px;
+  line-height:16px;
+  white-space:nowrap;
+}
+.referral-stat-card > img {
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  object-fit:contain;
+}
+.referral-link-card {
+  min-height:88px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.referral-link-card__copy {
+  min-width:0;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:12px;
+}
+.referral-link-card__copy b {
+  color:#fff;
+  font-family:"Martian Grotesk",var(--font-body);
+  font-size:16px;
+  font-weight:500;
+  line-height:20px;
+}
+.referral-link-card__copy span {
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:rgba(255,255,255,.5);
+  font-size:16px;
+  line-height:20px;
+}
+.referral-link-card .bitt-icon-button { flex:0 0 56px; }
+
+.referral-benefits {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.referral-benefits > h2 {
+  height:24px;
+  margin:0;
+  display:flex;
+  align-items:center;
+  color:#fff;
+  font-family:"Martian Grotesk",var(--font-body);
+  font-size:16px;
+  font-weight:500;
+  line-height:20px;
+}
+.referral-benefits-card {
+  padding:16px 16px 20px;
+  display:grid;
+  grid-template-columns:19.49px minmax(0,1fr);
+  align-items:start;
+  gap:12px;
+}
+.referral-benefits-card__markers {
+  width:19.49px;
+  padding-top:5px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1.125px;
+}
+.referral-benefit-dotline {
+  width:10.49px;
+  height:67.039px;
+  flex:0 0 67.039px;
+  display:block;
+  object-fit:contain;
+}
+.referral-benefit-dotline--end {
+  height:10.49px;
+  flex-basis:10.49px;
+}
+.referral-benefits-card__list {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.referral-benefit-row {
+  min-width:0;
+  height:56px;
+  min-height:56px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  padding-bottom:16px;
+  border-bottom:1px solid rgba(233,240,243,.15);
+}
+.referral-benefit-row--last {
+  height:40px;
+  min-height:40px;
+  padding-bottom:0;
+  border-bottom:0;
+}
+.referral-benefit-row b {
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#fff;
+  font-size:16px;
+  font-weight:400;
+  line-height:20px;
+}
+.referral-benefit-row small {
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:rgba(255,255,255,.5);
+  font-size:12px;
+  line-height:16px;
+}
+
+@media (max-width:360px) {
+  .referral-screen-content {
+    padding-left:calc(16px + var(--app-safe-left));
+    padding-right:calc(16px + var(--app-safe-right));
+  }
+  .referral-benefit-row b { font-size:15px; }
+}

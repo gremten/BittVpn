@@ -1,0 +1,27 @@
+/* Payment-provider imitation — Figma 7370:33064. The product-owner supplied
+   screenshot is intentionally stretched edge-to-edge, then the product CTA
+   tabbar overlays it at the bottom. */
+.payment-simulation-screen {
+  position:relative;
+  width:100%;
+  height:var(--app-viewport-height);
+  min-height:var(--app-viewport-height);
+  overflow:hidden;
+  background:#fff;
+}
+
+.payment-simulation-screen__image {
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+html.is-desktop-runtime .payment-simulation-screen {
+  height:100%;
+  min-height:0;
+}

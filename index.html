@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A0C0F" />
+  <title>BittVPN — Referral flow prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app" id="app" aria-live="polite">
+    <!-- MAIN -->
+    <section class="screen is-active" id="screen-main" data-screen="main">
+      <header class="tma-header">
+        <div class="statusbar">
+          <span class="status-time">9:41</span>
+          <span class="dynamic-island" aria-hidden="true"></span>
+          <div class="status-levels" aria-hidden="true">
+            <span class="bars">▮▮▮▮</span>
+            <svg viewBox="0 0 24 18" width="18" height="14"><path d="M2 6.7C7.6 1.9 16.4 1.9 22 6.7M5.4 10.1c3.8-3.1 9.4-3.1 13.2 0M9 13.5c1.8-1.4 4.2-1.4 6 0" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/><circle cx="12" cy="16" r="1.25" fill="currentColor"/></svg>
+            <span class="battery"><i></i></span>
+          </div>
+        </div>
+        <div class="tma-actions">
+          <button class="tma-pill tma-close" type="button"><span class="x-icon">×</span><span>Закрыть</span></button>
+          <div class="tma-pill tma-more"><span class="chev-down">⌄</span><span class="dots">⋮</span></div>
+        </div>
+      </header>
+
+      <div class="main-content content">
+        <div class="brand">BITTVPN</div>
+
+        <article class="promo-card">
+          <div class="promo-copy">
+            <h2>открой для себя<br><strong>японию</strong></h2>
+            <p>игры, шоппинг<br>и азиатские сервисы</p>
+            <button type="button" class="dark-pill">Посмотреть</button>
+          </div>
+          <div class="sakura" aria-hidden="true">
+            <span class="branch b1"></span><span class="branch b2"></span><span class="branch b3"></span>
+            <i class="flower f1">✦</i><i class="flower f2">✦</i><i class="flower f3">✦</i><i class="flower f4">✦</i>
+          </div>
+        </article>
+
+        <section class="block-section">
+          <div class="section-bar"><h2>/мои локации</h2><button class="mini-outline">Все</button></div>
+          <div class="location-stack">
+            <article class="location-card owned">
+              <div class="country-code">DE</div>
+              <div class="location-main"><b>Германия</b><small>3/5 устройств <em>•</em> <span class="ping low">10 мс</span></small></div>
+              <time>до 30 сентября</time>
+            </article>
+            <article class="location-card owned">
+              <div class="country-code">LT</div>
+              <div class="location-main"><b>Литва</b><small>1/5 устройств <em>•</em> <span class="ping medium">110 мс</span></small></div>
+              <time>до 1 декабря</time>
+            </article>
+            <article class="location-card owned">
+              <div class="country-code">KZ</div>
+              <div class="location-main"><b>Казахстан</b><small>1/5 устройств <em>•</em> <span class="ping high">930 мс</span></small></div>
+              <time>до 31.01.2028</time>
+            </article>
+          </div>
+        </section>
+
+        <section class="block-section">
+          <div class="section-bar"><h2>/доступные локации</h2><button class="mini-outline">Все</button></div>
+          <div class="location-stack">
+            <article class="location-card available">
+              <div class="location-row">
+                <div class="country-code">RU</div>
+                <div class="location-main"><b>BittRussia</b><small>Доступ ко всем сервисам из РФ</small></div>
+                <button class="price-pill">114 ₽</button>
+              </div>
+              <div class="location-meta">923 мс <em>•</em> Госсервисы <em>•</em> Ютуб без рекламы</div>
+            </article>
+            <article class="location-card available">
+              <div class="location-row">
+                <div class="country-code">JP</div>
+                <div class="location-main"><b>Япония</b><small>Лучший выбор для игр в азии</small></div>
+                <button class="price-pill">367 ₽</button>
+              </div>
+              <div class="location-meta">33 мс <em>•</em> Шоппинг <em>•</em> Игры</div>
+            </article>
+            <article class="location-card available disabled">
+              <div class="location-row">
+                <div class="country-code">ES</div>
+                <div class="location-main"><b>Испания</b><small>Временно недоступна</small></div>
+                <button class="price-pill" disabled>На паузе</button>
+              </div>
+              <div class="location-meta">Стриминг <em>•</em> Игры</div>
+            </article>
+          </div>
+        </section>
+
+        <article class="referral-entry" id="main-referral-entry" tabindex="0" role="button" aria-label="Открыть реферальную программу">
+          <div class="referral-entry-top">
+            <div>
+              <h2>пригласи друга</h2>
+              <p>и получай 5%<br>с каждой его оплаты</p>
+            </div>
+            <div class="friends-art" aria-hidden="true">
+              <span class="pixel-face">☺</span>
+              <span class="heart">♥</span>
+              <span class="pixel-face">☺</span>
+            </div>
+          </div>
+          <div class="referral-actions" data-stop-nav>
+            <button class="elevated-button share-button" type="button">Поделиться ссылкой</button>
+            <button class="icon-button copy-button" type="button" aria-label="Скопировать реферальную ссылку">
+              <span class="copy-glyph" aria-hidden="true"></span>
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Основная навигация">
+        <div class="nav-pill">
+          <button class="nav-item active" data-nav="main"><span class="nav-icon">⌂</span><span>Главная</span></button>
+          <button class="nav-item icon-only" aria-label="Конфиги"><span class="nav-icon">⌘</span></button>
+          <button class="nav-item icon-only profile-nav" data-nav="profile" aria-label="Профиль"><span class="nav-icon">♙</span></button>
+          <button class="nav-item icon-only" aria-label="Помощь"><span class="nav-icon">♧</span></button>
+        </div>
+        <span class="home-indicator"></span>
+      </nav>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="screen" id="screen-profile" data-screen="profile" hidden>
+      <header class="tma-header">
+        <div class="statusbar">
+          <span class="status-time">9:41</span>
+          <span class="dynamic-island" aria-hidden="true"></span>
+          <div class="status-levels" aria-hidden="true">
+            <span class="bars">▮▮▮▮</span>
+            <svg viewBox="0 0 24 18" width="18" height="14"><path d="M2 6.7C7.6 1.9 16.4 1.9 22 6.7M5.4 10.1c3.8-3.1 9.4-3.1 13.2 0M9 13.5c1.8-1.4 4.2-1.4 6 0" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/><circle cx="12" cy="16" r="1.25" fill="currentColor"/></svg>
+            <span class="battery"><i></i></span>
+          </div>
+        </div>
+        <div class="tma-actions">
+          <button class="tma-pill back-button" data-back type="button"><span class="back-arrow">‹</span><span>Назад</span></button>
+          <div class="tma-pill tma-more"><span class="chev-down">⌄</span><span class="dots">⋮</span></div>
+        </div>
+      </header>
+
+      <div class="profile-content content">
+        <section class="user-card">
+          <div class="avatar" aria-hidden="true">
+            <div class="avatar-head"></div><div class="avatar-neck"></div><div class="avatar-shirt"></div>
+          </div>
+          <h1>Юзернеймич</h1>
+          <button class="id-copy copy-id" type="button">id65436565 <span class="tiny-copy"></span></button>
+        </section>
+
+        <article class="profile-referral-card">
+          <div class="profile-referral-info referral-link-zone" tabindex="0" role="button" aria-label="Открыть реферальную программу">
+            <div class="profile-referral-title">
+              <h2>твоя рефералка</h2><span class="right-chevron">›</span>
+            </div>
+            <p>даем 5% с каждой покупки друга</p>
+          </div>
+          <div class="profile-stats">
+            <button class="profile-stat referral-link-zone" type="button">
+              <span><b>15</b><small>Друзей</small></span>
+              <span class="stat-icon people-icon">♟</span>
+            </button>
+            <button class="profile-stat referral-link-zone" type="button">
+              <span><b>560 ₽</b><small>Баланс</small></span>
+              <span class="stat-icon wallet-icon">▱</span>
+            </button>
+          </div>
+          <div class="referral-actions" data-stop-nav>
+            <button class="elevated-button share-button" type="button">Поделиться в тг</button>
+            <button class="icon-button copy-button" type="button" aria-label="Скопировать реферальную ссылку"><span class="copy-glyph"></span></button>
+          </div>
+        </article>
+
+        <section class="block-section history-section">
+          <div class="section-bar"><h2>/история операций</h2><button class="mini-outline">Все</button></div>
+          <article class="history-card">
+            <div class="history-group">
+              <div class="history-date">21 марта, воскресенье</div>
+              <div class="history-row">
+                <div class="history-code">DE</div>
+                <div class="history-copy"><b>Германия — 1 мес.</b><small class="warning">Ожидает оплату</small></div>
+                <div class="history-price">199 ₽</div>
+              </div>
+              <div class="history-row">
+                <div class="history-code">JP</div>
+                <div class="history-copy"><b>Япония — 12 мес.</b><small class="danger">Платеж просрочен</small></div>
+                <div class="history-price">3 132 ₽</div>
+              </div>
+            </div>
+            <div class="history-group">
+              <div class="history-date">20 февраля, четверг</div>
+              <div class="history-row last">
+                <div class="history-code">RU</div>
+                <div class="history-copy"><b>BittRussia — 1 мес.</b><small class="success">Успешно</small></div>
+                <div class="history-price">98 ₽</div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Основная навигация">
+        <div class="nav-pill">
+          <button class="nav-item icon-only" data-nav="main" aria-label="Главная"><span class="nav-icon">⌂</span></button>
+          <button class="nav-item icon-only" aria-label="Конфиги"><span class="nav-icon">⌘</span></button>
+          <button class="nav-item active" data-nav="profile"><span class="nav-icon">♙</span><span>Профиль</span></button>
+          <button class="nav-item icon-only" aria-label="Помощь"><span class="nav-icon">♧</span></button>
+        </div>
+        <span class="home-indicator"></span>
+      </nav>
+    </section>
+
+    <!-- REFERRAL -->
+    <section class="screen referral-screen" id="screen-referral" data-screen="referral" hidden>
+      <!-- Exact structural clip: the media layer is independent and clipped at stats' lower edge. -->
+      <div class="rain-clip" id="rain-clip" aria-hidden="true">
+        <canvas id="bitmap-matrix-rain" width="600" height="440"></canvas>
+      </div>
+
+      <header class="tma-header">
+        <div class="statusbar">
+          <span class="status-time">9:41</span>
+          <span class="dynamic-island" aria-hidden="true"></span>
+          <div class="status-levels" aria-hidden="true">
+            <span class="bars">▮▮▮▮</span>
+            <svg viewBox="0 0 24 18" width="18" height="14"><path d="M2 6.7C7.6 1.9 16.4 1.9 22 6.7M5.4 10.1c3.8-3.1 9.4-3.1 13.2 0M9 13.5c1.8-1.4 4.2-1.4 6 0" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/><circle cx="12" cy="16" r="1.25" fill="currentColor"/></svg>
+            <span class="battery"><i></i></span>
+          </div>
+        </div>
+        <div class="tma-actions">
+          <button class="tma-pill back-button" data-back type="button"><span class="back-arrow">‹</span><span>Назад</span></button>
+          <div class="tma-pill tma-more"><span class="chev-down">⌄</span><span class="dots">⋮</span></div>
+        </div>
+      </header>
+
+      <div class="referral-content content">
+        <section class="balance-block">
+          <strong>560 ₽</strong>
+          <span>Бонусный баланс</span>
+        </section>
+
+        <section class="referral-stats" id="referral-stats">
+          <article class="ref-stat">
+            <div><b>15</b><small>Приглашено</small></div><span class="pixel-stat-icon">♟</span>
+          </article>
+          <article class="ref-stat">
+            <div><b>+600 ₽</b><small>За декабрь</small></div><span class="pixel-stat-icon">▱</span>
+          </article>
+          <article class="referral-link-card">
+            <div class="link-copy"><b>ссылка</b><span>bitt.io/r/45454522</span></div>
+            <button class="icon-button copy-button" type="button" aria-label="Скопировать реферальную ссылку"><span class="copy-glyph"></span></button>
+          </article>
+        </section>
+
+        <section class="advantages">
+          <h2>/в чем твоя выгода</h2>
+          <article class="advantages-card">
+            <div class="timeline" aria-hidden="true">
+              <span class="dot"></span><span class="line"></span>
+              <span class="dot"></span><span class="line"></span>
+              <span class="dot"></span>
+            </div>
+            <div class="adv-list">
+              <div class="adv-row"><b>Приглашай друзей</b><small>Они закрепятся как твои рефералы</small></div>
+              <div class="adv-row"><b>Получай 5% с каждой их покупки</b><small>Бонусы зачислятся на твой баланс</small></div>
+              <div class="adv-row last"><b>Плати бонусами</b><small>Можно оплатить свои покупки целиком</small></div>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <div class="referral-cta">
+        <button class="primary-share share-button" type="button">Поделиться ссылкой</button>
+        <span class="home-indicator"></span>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="toast-icon">✓</span><span id="toast-text">Скопировано в буфер обмена</span>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

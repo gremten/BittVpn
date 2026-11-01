@@ -1,0 +1,18 @@
+{
+  "README.md": {
+    "size": 2172,
+    "sha256": "6ccf25ef6a43535448ded248a8ebe4aa9c684fc819692aab55750cd9bb43c14a"
+  },
+  "app.js": {
+    "size": 8028,
+    "sha256": "4bfe8ce2bfd739d78dc3445ac427a5dbfa010ff58410f039826a634bb37dcd28"
+  },
+  "index.html": {
+    "size": 15687,
+    "sha256": "cc56eb2d84bf1461e94d8433bfbbce3f44a7d95949b0e932423e8475d4a49907"
+  },
+  "styles.css": {
+    "size": 16613,
+    "sha256": "0a21f199d86c8ece8f0c871352bc3d46d054778e5bb6c13b87186c20056b3552"
+  }
+}

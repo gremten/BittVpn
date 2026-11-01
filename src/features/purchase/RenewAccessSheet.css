@@ -1,0 +1,5 @@
+/* Figma 7353:30359 / 7353:30358. Shared BottomSheet owns every outer-shell
+   property. This file may only describe renewal-specific inner content. */
+.renew-access-sheet .sheet-plan-block h2 {
+  line-height:24px;
+}

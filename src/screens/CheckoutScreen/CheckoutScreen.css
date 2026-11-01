@@ -1,0 +1,432 @@
+/* Checkout screen — Figma node 6606:23733, adapted to the real Telegram
+   fullscreen shell (native header + native safe areas, no simulated iPhone UI). */
+.checkout-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  padding:
+    calc(16px + var(--app-safe-top))
+    calc(16px + var(--app-safe-right))
+    calc(var(--purchase-tabbar-height) + var(--content-tabbar-gap) + var(--app-safe-bottom))
+    calc(16px + var(--app-safe-left));
+}
+
+.checkout-top-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.checkout-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px 20px;
+  border-radius: 20px;
+}
+
+
+.checkout-devices-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 78px;
+  padding: 16px;
+  border-radius: 16px;
+  transition: min-height 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.checkout-devices-card--active {
+  min-height: 80px;
+}
+
+.checkout-devices-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.checkout-devices-copy > .body-medium {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #fff;
+}
+
+.checkout-devices-secondary {
+  position: relative;
+  height: 18px;
+  transition: height 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.checkout-devices-card--active .checkout-devices-secondary {
+  height: 20px;
+}
+
+.checkout-devices-caption,
+.checkout-devices-price {
+  position: absolute;
+  inset: 0 auto auto 0;
+  white-space: nowrap;
+  transform-origin: left center;
+  transition:
+    opacity 140ms ease,
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.checkout-devices-caption {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 18px;
+  color: #fff;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.checkout-devices-price {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #fff;
+  opacity: 0;
+  transform: translateY(3px) scale(0.98);
+  pointer-events: none;
+}
+
+.checkout-devices-card--active .checkout-devices-caption {
+  opacity: 0;
+  transform: translateY(-3px) scale(0.98);
+  pointer-events: none;
+}
+
+.checkout-devices-card--active .checkout-devices-price {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.checkout-device-control {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  transition: width 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: width;
+}
+
+.checkout-device-control--expanded {
+  width: 108px;
+}
+
+.checkout-device-control button {
+  appearance: none;
+  position: absolute;
+  top: 0;
+  height: 44px;
+  border: 0;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.checkout-device-control button img {
+  display: block;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+}
+
+.checkout-device-control__minus {
+  left: 6px;
+  width: 36px;
+  opacity: 0;
+  transform: translateX(8px) scale(0.92);
+  pointer-events: none;
+  transition:
+    opacity 110ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.checkout-device-control__count {
+  position: absolute;
+  top: 12px;
+  left: 42px;
+  width: 24px;
+  height: 20px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+  transition:
+    opacity 110ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.checkout-device-control__plus {
+  right: 0;
+  width: 44px;
+  transition:
+    right 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.checkout-device-control--expanded .checkout-device-control__minus {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+  transition-delay: 55ms;
+}
+
+.checkout-device-control--expanded .checkout-device-control__count {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 55ms;
+}
+
+.checkout-device-control--expanded .checkout-device-control__plus {
+  right: 6px;
+  width: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-devices-card,
+  .checkout-devices-secondary,
+  .checkout-devices-caption,
+  .checkout-devices-price,
+  .checkout-device-control,
+  .checkout-device-control__minus,
+  .checkout-device-control__count,
+  .checkout-device-control__plus {
+    transition: none !important;
+  }
+}
+
+.checkout-bonus-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.checkout-bonus-heading {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.checkout-bonus-heading h2 {
+  margin: 0;
+  font-family: "Martian Grotesk", var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.checkout-bonus-info {
+  appearance:none;
+  -webkit-appearance:none;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  margin:0;
+  padding:4px;
+  border:0;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.checkout-bonus-info:active {
+  background:transparent;
+}
+
+.checkout-bonus-info img {
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+  display:block;
+  opacity:1;
+  filter:brightness(0) invert(1);
+  pointer-events:none;
+}
+
+.checkout-payment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px;
+  border-radius: 20px;
+}
+
+.checkout-payment-total {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 20px;
+  font-family: "Martian Grotesk", var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.checkout-payment-total strong {
+  font: inherit;
+  white-space: nowrap;
+}
+
+.checkout-payment-separator {
+  width: 100%;
+  height: 1px;
+  flex: 0 0 1px;
+  background: repeating-linear-gradient(
+    to right,
+    rgba(233, 240, 243, 0.20) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+.checkout-payment-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.checkout-payment-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 20px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.checkout-payment-line > span {
+  min-width: 0;
+}
+
+.checkout-payment-line strong {
+  flex: 0 0 auto;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+
+.checkout-payment-button {
+  appearance: none;
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  padding: 14px 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: var(--text-on-color);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 360px) {
+  .checkout-content {
+    padding-right: calc(16px + var(--app-safe-right));
+    padding-left: calc(16px + var(--app-safe-left));
+  }
+
+  .checkout-devices-caption {
+    font-size: 13px;
+  }
+}
+
+/* Payment breakdown disclosure motion.
+   Uses the same motion language as the extra-device button -> stepper:
+   the geometry itself grows/shrinks over 200ms while the new content
+   softly settles in. No scale/FLIP is applied to the payment card, so
+   text and borders never distort while its natural height changes. */
+.checkout-payment-lines {
+  gap: 0;
+}
+
+.checkout-payment-line-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    grid-template-rows 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 110ms ease;
+  will-change: grid-template-rows;
+}
+
+.checkout-payment-line-slot--visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.checkout-payment-line-slot__inner {
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+  transform: translateY(-3px);
+  opacity: 0;
+  transition:
+    padding-top 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 110ms ease;
+}
+
+.checkout-payment-line-slot--visible .checkout-payment-line-slot__inner {
+  padding-top: 16px;
+  transform: translateY(0);
+  opacity: 1;
+  transition-delay: 0ms, 45ms, 45ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-payment-line-slot,
+  .checkout-payment-line-slot__inner {
+    transition: none !important;
+  }
+}

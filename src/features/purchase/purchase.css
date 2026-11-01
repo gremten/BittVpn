@@ -1,0 +1,240 @@
+/* Telegram renders its own native top bar. No simulated iPhone/Telegram
+   header is drawn inside the web content. */
+/* Compact CTA tabbar from node 6643:24557. */
+.purchase-tabbar.bitt-app-tabbar {
+  position: fixed;
+  z-index: 15;
+  left: 50%;
+  right: auto;
+  bottom: 0;
+  width: min(100%, var(--app-max-width));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  padding: 20px calc(20px + var(--app-safe-right)) calc(20px + var(--app-action-safe-bottom)) calc(20px + var(--app-safe-left));
+  border-radius: 36px 36px 0 0;
+  background: rgba(38, 44, 59, 0.3);
+  backdrop-filter: blur(11.2px);
+  -webkit-backdrop-filter: blur(11.2px);
+  transition: opacity 160ms ease, transform 220ms ease;
+}
+
+.purchase-tabbar.bitt-app-tabbar.purchase-tabbar--hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(18px);
+  pointer-events: none;
+}
+
+.purchase-cta {
+  appearance: none;
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: #fff;
+  color: var(--text-on-color);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.purchase-cta > span {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.purchase-cta small {
+  color: var(--bg-elevated);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+
+.sheet-plan-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Figma Data Slider, component 7166:121702.
+   The six point cells live inside a 24 px horizontal inset. The value badge
+   HUGs its 14/18 label and stays centered on the same anchor as the knob. */
+.duration-control {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.duration-value-row {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
+.duration-value-pill {
+  --duration-anchor-x: 0px;
+  appearance: none;
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: var(--duration-anchor-x);
+  min-height: 32px;
+  max-height: 32px;
+  max-width: 320px;
+  border: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-on-color);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition: left 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.duration-value-pill:active {
+  cursor: grabbing;
+}
+
+.duration-track {
+  position: relative;
+  width: 100%;
+  height: 46px;
+  flex: 0 0 46px;
+  border: 1px solid var(--border-tertiary);
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.duration-step-grid {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  pointer-events: none;
+}
+
+.duration-point {
+  min-width: 32px;
+  height: 44px;
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duration-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 9999px;
+  background: var(--bg-elevated);
+}
+
+.duration-filled {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  left: -1px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: width;
+}
+
+.duration-filled-gradient {
+  min-width: 0;
+  height: 46px;
+  flex: 1 1 auto;
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(90deg, #242a33 0%, #363e4a 100%);
+}
+
+.duration-knob {
+  width: 12px;
+  height: 52px;
+  flex: 0 0 12px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+
+.sheet-button-slot {
+  /* The shared BottomSheet already owns the complete CTA-to-viewport
+     clearance. Do not add the old 20px action-tabbar tail here too, or the
+     purchase/renew CTA is lifted 20px above every other bottom CTA. */
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  flex: 0 0 56px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.sheet-buy-button {
+  appearance: none;
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  padding: 14px 16px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-on-color);
+  font-family: var(--font-body) !important;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  font-synthesis: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .purchase-tabbar.bitt-app-tabbar,
+  .duration-value-pill,
+  .duration-filled {
+    transition: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .purchase-tabbar.bitt-app-tabbar {
+    padding-left: calc(16px + var(--app-safe-left));
+    padding-right: calc(16px + var(--app-safe-right));
+  }
+}

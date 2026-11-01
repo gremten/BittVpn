@@ -1,0 +1,1161 @@
+/*
+  BitVPN reusable component layer
+  -------------------------------
+  Public APIs mirror the top-level Figma component families on page 7:69.
+  Nodes marked 🔒 / master are implementation primitives, not "ignore" nodes:
+  composite components below reuse their geometry and states internally.
+*/
+
+.bitt-button,
+.bitt-icon-button,
+.bitt-chip,
+.bitt-navigator__item,
+.bitt-legacy-tabbar__item,
+.bitt-context-menu__item {
+  appearance: none;
+  border: 0;
+  font-family: var(--font-body);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bitt-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  font-weight: 400;
+  letter-spacing: 0;
+  position: relative;
+  transition: opacity 140ms ease, transform 140ms ease;
+  touch-action: manipulation;
+  user-select: none;
+  transform-origin: center;
+}
+
+.bitt-button:active:not(:disabled),
+.bitt-icon-button:active:not(:disabled),
+.bitt-chip:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* Product rule: every scale-based pressed state uses the same 0.985 scale.
+   Compact outlined buttons must not introduce a stronger one-off press. */
+.bitt-button--xsmall.bitt-button--outlined:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.bitt-icon-button,
+.bitt-chip {
+  transform-origin: center;
+}
+
+.bitt-button--full { width: 100%; }
+
+/* Figma Button / size variants */
+.bitt-button--xsmall {
+  min-width: 44px;
+  height: 24px;
+  padding: 4px 8px;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.bitt-button--small {
+  min-width: 68px;
+  height: 32px;
+  padding: 7px 12px;
+  gap: 0;
+  font-size: 14px;
+  line-height: 18px;
+}
+.bitt-button--medium {
+  min-width: 76px;
+  height: 44px;
+  padding: 12px 16px;
+  gap: 4px;
+  font-size: 16px;
+  line-height: 20px;
+}
+.bitt-button--large {
+  min-width: 76px;
+  height: 56px;
+  padding: 14px 16px;
+  gap: 4px;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+/* Figma Button / form variants */
+.bitt-button--circle { border-radius: 999px; }
+.bitt-button--xsmall.bitt-button--squircle { border-radius: 8px; }
+.bitt-button--small.bitt-button--squircle { border-radius: 12px; }
+.bitt-button--medium.bitt-button--squircle,
+.bitt-button--large.bitt-button--squircle { border-radius: 16px; }
+.bitt-button--none { border-radius: 0; }
+
+/* Figma label wrappers: caption/s use 4px inline padding, m uses 2px. */
+.bitt-button--xsmall .bitt-button__label,
+.bitt-button--small .bitt-button__label { padding-inline: 4px; }
+.bitt-button--medium .bitt-button__label,
+.bitt-button--large .bitt-button__label { padding-inline: 2px; }
+
+/* Figma Button / type + color variants */
+.bitt-button--primary.bitt-button--accent { background: #fff; color: #0a0c0f; }
+.bitt-button--primary.bitt-button--inverse { background: #0a0c0f; color: #fff; }
+.bitt-button--secondary.bitt-button--surface { background: #161a20; color: #fff; }
+.bitt-button--secondary.bitt-button--elevated { background: #242a33; color: #fff; }
+
+/* Figma stores outlined as dashPattern [0.1, 3] + ROUND caps.
+   In CSS the scalable/native equivalent is a dotted border: round dots
+   that follow the element's real border-radius at any HUG/fill width.
+   Keep the stroke directly on <button>; no SVG/pseudo-element geometry. */
+.bitt-button--outlined {
+  background: transparent;
+  color: #fff;
+  border: 1.5px dotted rgba(233, 240, 243, 0.20);
+}
+
+/* Outlined has no hover/focus/press fill in the design system. */
+.bitt-button--outlined:hover:not(:disabled),
+.bitt-button--outlined:focus:not(:disabled),
+.bitt-button--outlined:active:not(:disabled),
+.bitt-button--outlined.bitt-button--active {
+  background: transparent;
+}
+
+.bitt-button--ghost,
+.bitt-button--menu { background: transparent; color: #fff; }
+
+.bitt-button--danger:not(.bitt-button--outlined):not(.bitt-button--ghost):not(.bitt-button--menu) { color: #df5050; }
+.bitt-button--danger.bitt-button--outlined,
+.bitt-button--danger.bitt-button--ghost,
+.bitt-button--danger.bitt-button--menu { color: #df5050; }
+
+/* Figma warning keeps border/primary and only changes content color. */
+.bitt-button--warning { color: rgba(255,195,0,.75); }
+.bitt-button--warning.bitt-button--outlined {
+  border-color: rgba(233, 240, 243, 0.15);
+}
+
+/* Menu's active state is the only `state=active` fill in this component set. */
+.bitt-button--menu.bitt-button--active {
+  background: #242a33;
+  border-radius: 999px;
+}
+.bitt-button--active:not(.bitt-button--outlined):not(.bitt-button--ghost):not(.bitt-button--menu) {
+  background: #242a33;
+  color: #fff;
+}
+
+.bitt-button--disabled,
+.bitt-button:disabled {
+  background: #2d3138 !important;
+  color: #9499a1 !important;
+  border-color: transparent !important;
+  cursor: default;
+  opacity: 1;
+}
+
+.bitt-button__icon {
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+.bitt-button--xsmall .bitt-button__icon,
+.bitt-button--small .bitt-button__icon { width: 16px; height: 16px; }
+.bitt-button--medium .bitt-button__icon,
+.bitt-button--large .bitt-button__icon { width: 24px; height: 24px; }
+.bitt-button--primary.bitt-button--accent .bitt-button__icon { filter: brightness(0); }
+
+.bitt-icon-button {
+  display: inline-flex;
+  transition: opacity 140ms ease, transform 140ms ease, background-color 140ms ease;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  overflow: hidden;
+}
+.bitt-icon-button img { object-fit: contain; }
+.bitt-icon-button--xsmall { width: 24px; height: 24px; }
+.bitt-icon-button--small { width: 32px; height: 32px; }
+.bitt-icon-button--medium { width: 44px; height: 44px; }
+.bitt-icon-button--large { width: 56px; height: 56px; }
+.bitt-icon-button--xsmall img,
+.bitt-icon-button--small img { width: 16px; height: 16px; }
+.bitt-icon-button--medium img,
+.bitt-icon-button--large img { width: 24px; height: 24px; }
+.bitt-icon-button--circle { border-radius: 999px; }
+.bitt-icon-button--xsmall.bitt-icon-button--squircle { border-radius: 8px; }
+.bitt-icon-button--small.bitt-icon-button--squircle { border-radius: 12px; }
+.bitt-icon-button--medium.bitt-icon-button--squircle,
+.bitt-icon-button--large.bitt-icon-button--squircle { border-radius: 16px; }
+.bitt-icon-button--accent { background: #fff; }
+.bitt-icon-button--accent img { filter: brightness(0); }
+.bitt-icon-button--inverse { background: #0a0c0f; }
+.bitt-icon-button--surface { background: #161a20; }
+.bitt-icon-button--elevated { background: #242a33; }
+.bitt-icon-button--outlined { background: transparent; border: 1.5px dotted rgba(233,240,243,.2); }
+.bitt-icon-button--ghost { background: transparent; }
+.bitt-icon-button--glass-frost { background: rgba(36,42,51,.75); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+
+.bitt-icon-button:disabled {
+  cursor:default;
+}
+.bitt-icon-button__disabled-icon {
+  display:block;
+  flex:0 0 auto;
+  background:#9499a1;
+  pointer-events:none;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain;
+}
+.bitt-icon-button--xsmall .bitt-icon-button__disabled-icon,
+.bitt-icon-button--small .bitt-icon-button__disabled-icon { width:16px; height:16px; }
+.bitt-icon-button--medium .bitt-icon-button__disabled-icon,
+.bitt-icon-button--large .bitt-icon-button__disabled-icon { width:24px; height:24px; }
+
+/* tabs (7435:37032 / active master 7435:37022). */
+.bitt-tabs {
+  position:relative;
+  flex:1 1 0;
+  min-width:0;
+  height:32px;
+  margin:0;
+  padding:0;
+  border:0;
+  appearance:none;
+  -webkit-appearance:none;
+  background:transparent;
+  color:rgba(255,255,255,.5);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  font-family:"Martian Grotesk",var(--font-body);
+  font-size:16px;
+  font-weight:500;
+  line-height:24px;
+  letter-spacing:0;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.bitt-tabs__label {
+  display:block;
+  white-space:nowrap;
+}
+.bitt-tabs__indicator {
+  position:absolute;
+  left:50%;
+  bottom:0;
+  width:48px;
+  height:1px;
+  transform:translateX(-50%);
+  background:transparent;
+  pointer-events:none;
+}
+.bitt-tabs--active { color:#fff; }
+.bitt-tabs--active .bitt-tabs__indicator { background:#fff; }
+.bitt-tabs:active { transform:none; background:transparent; }
+
+.bitt-card {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #161a20;
+  color: #fff;
+}
+.bitt-card--clickable { cursor: pointer; }
+.bitt-card--warning { background:#27210e; }
+.bitt-card--active { background: #242a33; }
+.bitt-card--loading { min-height:68px; background:rgba(38,44,59,.6); cursor:default; }
+
+.bitt-skeleton {
+  position:relative;
+  display:inline-block;
+  flex:0 0 auto;
+  max-width:100%;
+  overflow:hidden;
+  background:rgba(38,44,59,.6);
+  vertical-align:middle;
+  pointer-events:none;
+}
+.bitt-skeleton--font {
+  min-width:12px;
+}
+.bitt-skeleton--control {
+  min-width:1px;
+}
+.bitt-skeleton-shine {
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:-60px;
+  width:30px;
+  background:#fff;
+  opacity:.2;
+  filter:blur(37.5px);
+  pointer-events:none;
+  will-change:left;
+  animation:bitt-skeleton-shine 1.6s linear infinite;
+}
+@keyframes bitt-skeleton-shine {
+  from { left:-60px; }
+  to { left:calc(100% + 60px); }
+}
+
+.bitt-location-card {
+  min-height: 68px;
+  transition: transform 120ms ease;
+  transform-origin: center;
+}
+.bitt-location-card.bitt-card--clickable:active { transform:scale(.985); }
+.bitt-location-card-data { width:100%; min-width:0; }
+.bitt-location-card-data--current {
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.bitt-location-card-data--available {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.bitt-location-card__top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; width:100%; min-width:0; }
+.bitt-location-card__country { display:flex; align-items:flex-start; gap:8px; min-width:0; flex:1 1 auto; }
+.bitt-location-card__code { width:44px; height:44px; flex:0 0 44px; display:flex; align-items:center; justify-content:flex-end; padding:4px; font-family:"Nothing Font",sans-serif; font-size:28px; line-height:36px; color:#fff; }
+.bitt-location-card__copy { display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:0; min-height:44px; flex:1 1 auto; }
+.bitt-location-card__title { font-size:16px; line-height:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bitt-location-card__description,
+.bitt-location-card__meta,
+.bitt-location-card__expiry,
+.bitt-location-card__bar { font-size:12px; line-height:16px; }
+.bitt-location-card__description { color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:204px; }
+.bitt-location-card__meta { display:flex; gap:4px; align-items:center; white-space:nowrap; min-height:16px; }
+.bitt-location-card__secondary { color:rgba(255,255,255,.5); }
+.bitt-location-card__separator { color:rgba(255,255,255,.5); }
+.bitt-location-card__expiry { align-self:stretch; padding-top:4px; white-space:nowrap; }
+.bitt-location-card__price { flex:0 0 auto; min-width:68px; pointer-events:none; }
+.bitt-location-card__available-bottom {
+  width:100%;
+  min-width:0;
+  padding-left:52px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.bitt-location-card__divider {
+  display:block;
+  width:100%;
+  height:1px;
+  flex:0 0 1px;
+  background:repeating-linear-gradient(
+    90deg,
+    rgba(233,240,243,.2) 0 2px,
+    transparent 2px 4px
+  );
+}
+.bitt-location-card__bar { display:flex; gap:4px; align-items:flex-start; white-space:nowrap; overflow:hidden; }
+.bitt-location-card__bar-fragment { display:inline-flex; gap:4px; min-width:0; }
+.bitt-location-card__bar-fragment > span:first-child { overflow:hidden; text-overflow:ellipsis; }
+.bitt-location-card--disabled { color:#9499a1; cursor:default; }
+.bitt-location-card--disabled .bitt-location-card__code,
+.bitt-location-card--disabled .bitt-location-card__description,
+.bitt-location-card--disabled .bitt-location-card__title,
+.bitt-location-card--disabled .bitt-location-card__bar { color:#9499a1; }
+
+/* 🔒 ping + 🔒 _/master ping blinking (5335:15616 / 4984:5580). */
+.bitt-ping {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  min-height:16px;
+  color:#fff;
+  font-size:12px;
+  line-height:16px;
+}
+.bitt-ping-dot-slot {
+  width:4px;
+  height:6px;
+  flex:0 0 4px;
+  display:inline-flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+.bitt-ping-dot {
+  --ping-color: rgba(17,196,76,.75);
+  --ping-glow: #11c44c;
+  width:2.4px;
+  height:2.4px;
+  flex:0 0 2.4px;
+  border-radius:999px;
+  background:var(--ping-color);
+  transform-origin:center;
+  animation:bitt-ping-blink 1.851s infinite;
+}
+.bitt-ping-dot--low { --ping-color:rgba(17,196,76,.75); --ping-glow:#11c44c; }
+.bitt-ping-dot--medium { --ping-color:rgba(255,195,0,.75); --ping-glow:#e86630; }
+.bitt-ping-dot--high { --ping-color:rgba(223,80,80,.75); --ping-glow:#ff0000; }
+.bitt-ping-dot--offline { --ping-color:#9499a1; --ping-glow:#9499a1; animation:none; transform:scale(1); box-shadow:none; }
+.bitt-ping--offline { color:#9499a1; }
+@keyframes bitt-ping-blink {
+  0% { transform:scale(.5); box-shadow:0 0 .75px var(--ping-glow); animation-timing-function:ease-in; }
+  40.52% { transform:scale(1); box-shadow:none; }
+  45.92% { transform:scale(1); box-shadow:none; animation-timing-function:ease-out; }
+  100% { transform:scale(.5); box-shadow:0 0 .75px var(--ping-glow); }
+}
+.bitt-ping__value { white-space:nowrap; }
+
+/* 🔒 row (5964:23500), shared by characteristics and checkout summaries. */
+.bitt-detail-row {
+  width:100%;
+  min-width:0;
+  min-height:32px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(138,140,143,.15);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  color:#fff;
+  font-family:var(--font-body);
+  font-size:16px;
+  font-weight:400;
+  line-height:20px;
+  white-space:nowrap;
+}
+.bitt-detail-row--end { min-height:20px; padding-bottom:0; border-bottom:0; }
+.bitt-detail-row__label { flex:0 0 auto; }
+.bitt-detail-row__value { min-width:0; margin-left:auto; text-align:right; }
+.bitt-detail-row__value--primary { color:#fff; }
+.bitt-detail-row__value--secondary { color:rgba(255,255,255,.5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bitt-location-card { transition:none; }
+  .bitt-ping-dot { animation:none; transform:scale(1); box-shadow:none; }
+}
+
+.bitt-block { position:relative; width:100%; min-width:0; padding:16px; overflow:hidden; border-radius:20px; background:#161a20; color:#fff; }
+.bitt-block--inverse { background:#fff; color:#0a0c0f; }
+.bitt-block--loading { min-height:76px; background:rgba(38,44,59,.6); }
+
+.bitt-button-group { width:100%; display:flex; gap:8px; }
+.bitt-button-group--horizontal { flex-direction:row; }
+.bitt-button-group--vertical { flex-direction:column; }
+.bitt-button-group > * { min-width:0; }
+.bitt-button-group--horizontal > *:first-child { flex:1 1 auto; }
+
+.bitt-navigator {
+  position:relative;
+  display:flex;
+  align-items:center;
+  width:300px;
+  height:56px;
+  min-width:0;
+  padding:0 8px 0 0;
+  box-sizing:border-box;
+  flex:0 0 auto;
+  border-radius:999px;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  overflow:hidden;
+  pointer-events:auto;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  will-change:width,padding;
+}
+
+/*
+ * Each child is a real Figma nav-button slot. At rest the selected slot HUGs
+ * its icon + label. During scrub all four slots collapse to 56px, so there is
+ * no invisible label-sized gap in the black navigator.
+ */
+.bitt-navigator__slot {
+  appearance:none;
+  position:relative;
+  z-index:1;
+  width:56px;
+  height:56px;
+  min-width:0;
+  flex:0 0 auto;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  color:#fff;
+  font-family:var(--font-body);
+  cursor:pointer;
+  overflow:visible;
+  -webkit-tap-highlight-color:transparent;
+  will-change:width;
+}
+
+.bitt-navigator__slot:focus-visible {
+  outline:2px solid rgba(255,255,255,.72);
+  outline-offset:-4px;
+}
+
+.bitt-navigator__slot-icon,
+.bitt-navigator__active-icon {
+  width:24px;
+  height:24px;
+  min-width:24px;
+  flex:0 0 24px;
+  display:block;
+  pointer-events:none;
+  overflow:visible;
+}
+
+/*
+ * The active pill is rendered INSIDE the caught slot and moves between slots
+ * with a shared Motion layoutId. It is therefore never a free-floating knob.
+ */
+.bitt-navigator__active-pill {
+  position:absolute;
+  z-index:2;
+  inset:0;
+  width:100%;
+  height:56px;
+  padding:14px 16px;
+  box-sizing:border-box;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:4px;
+  overflow:hidden;
+  background:#fff;
+  color:#0a0c0f;
+  pointer-events:none;
+  transform-origin:center;
+}
+
+/* Active Navigator SVGs are the exact current Figma exports and already use icon/on-color (#0A0C0F). */
+
+.bitt-navigator__label {
+  flex:0 0 auto;
+  width:max-content;
+  max-width:none;
+  padding:0 2px;
+  font-family:var(--font-body);
+  font-size:16px;
+  font-weight:400;
+  line-height:20px;
+  letter-spacing:0;
+  color:#0a0c0f;
+  white-space:nowrap;
+  pointer-events:none;
+}
+
+.bitt-navigator--scrubbing {
+  cursor:grabbing;
+}
+
+.bitt-navigator--scrubbing .bitt-navigator__slot {
+  cursor:grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitt-navigator,
+  .bitt-navigator__slot,
+  .bitt-navigator__active-pill,
+  .bitt-navigator__label {
+    transition:none !important;
+  }
+}
+
+
+.bitt-app-tabbar {
+  position:fixed;
+  z-index:50;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:min(100%,var(--app-max-width));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  pointer-events:auto;
+  transition:opacity 160ms ease, transform 220ms ease;
+}
+.bitt-app-tabbar--navigation {
+  /* Figma 5948:20583. Navigation owns no visible outer surface; only the
+     Navigator pill paints. Its spacing is independent from action CTA math. */
+  gap:16px;
+  padding:
+    var(--app-tabbar-top-padding)
+    calc(var(--app-tabbar-inline-padding) + var(--app-safe-right))
+    var(--app-navigation-safe-bottom)
+    calc(var(--app-tabbar-inline-padding) + var(--app-safe-left));
+  background:transparent;
+  border-radius:0;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  pointer-events:none;
+}
+.bitt-app-tabbar__navigation-wrap {
+  height:var(--app-tabbar-navigation-wrap-height);
+  min-height:var(--app-tabbar-navigation-wrap-height);
+  max-height:var(--app-tabbar-navigation-wrap-height);
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  flex:0 0 var(--app-tabbar-navigation-wrap-height);
+  pointer-events:auto;
+}
+.bitt-app-tabbar--action {
+  /* Figma 5948:20740. Current action usages have no external subline, so the
+     real 56px CTA is followed directly by the same CTA-edge clearance token
+     used by BottomSheet. No invisible 20px spacer is involved. */
+  gap:16px;
+  padding:
+    var(--app-tabbar-top-padding)
+    calc(var(--app-tabbar-inline-padding) + var(--app-safe-right))
+    var(--app-bottom-cta-clearance)
+    calc(var(--app-tabbar-inline-padding) + var(--app-safe-left));
+  background:rgba(22,26,32,.8);
+  border-radius:36px 36px 0 0;
+  backdrop-filter:blur(11.2px);
+  -webkit-backdrop-filter:blur(11.2px);
+}
+.bitt-app-tabbar--action-with-subline {
+  /* A 16px subline + 4px gap occupies the 20px tail below the CTA. Reduce
+     shell padding by that same amount while preserving the CTA baseline. */
+  padding-bottom:var(--app-action-safe-bottom);
+}
+.bitt-app-tabbar__button-content {
+  width:100%;
+  height:56px;
+  min-height:56px;
+  max-height:56px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:4px;
+}
+.bitt-app-tabbar--action-with-subline .bitt-app-tabbar__button-content {
+  height:var(--app-tabbar-button-wrap-height);
+  min-height:var(--app-tabbar-button-wrap-height);
+  max-height:var(--app-tabbar-button-wrap-height);
+}
+.bitt-app-tabbar__subline {
+  width:100%;
+  font-size:12px;
+  line-height:16px;
+  text-align:center;
+  color:#fff;
+}
+.bitt-app-tabbar--hidden {
+  opacity:0;
+  transform:translateX(-50%) translateY(18px);
+  pointer-events:none;
+}
+
+@media (max-width:360px) {
+  .bitt-app-tabbar {
+    padding-left:calc(16px + var(--app-safe-left));
+    padding-right:calc(16px + var(--app-safe-right));
+  }
+}
+
+.bitt-legacy-tabbar { display:flex; align-items:center; height:52px; gap:24px; padding-right:24px; border-radius:999px; background:rgba(0,0,0,.69); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.bitt-legacy-tabbar__item { width:24px; height:52px; padding:0; display:flex; align-items:center; justify-content:center; gap:4px; background:transparent; color:#fff; }
+.bitt-legacy-tabbar__item img { width:24px; height:24px; object-fit:contain; }
+.bitt-legacy-tabbar__item--active { width:auto; min-width:76px; padding:14px 16px; border-radius:999px; background:#fff; color:#0a0c0f; }
+.bitt-legacy-tabbar__item--active img { filter:brightness(0); }
+.bitt-legacy-tabbar__item span { padding:0 4px; font-size:16px; line-height:20px; white-space:nowrap; }
+
+.bitt-badge { max-width:320px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; color:#fff; white-space:nowrap; }
+.bitt-badge img { object-fit:contain; }
+.bitt-badge--xsmall { height:24px; padding:4px 8px; font-size:12px; line-height:16px; }
+.bitt-badge--small { height:32px; padding:7px 12px; font-size:14px; line-height:18px; }
+.bitt-badge--medium { height:44px; padding:10px 16px; font-size:16px; line-height:20px; }
+.bitt-badge--xsmall .bitt-badge__icon,
+.bitt-badge--small .bitt-badge__icon { width:16px; height:16px; flex:0 0 16px; }
+.bitt-badge--medium .bitt-badge__icon { width:24px; height:24px; flex:0 0 24px; }
+.bitt-badge--surface { background:#161a20; }
+.bitt-badge--elevated { background:#242a33; }
+.bitt-badge--inverse { background:#fff; color:#0a0c0f; }
+.bitt-badge--inverse img { filter:brightness(0); }
+.bitt-badge > span { padding:0 4px; overflow:hidden; text-overflow:ellipsis; }
+
+.bitt-cell { min-height:56px; display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:16px; background:#161a20; color:#fff; }
+.bitt-cell__icon { width:32px; height:32px; object-fit:contain; flex:0 0 32px; }
+.bitt-cell__copy { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.bitt-cell__title { font-size:16px; line-height:20px; }
+.bitt-cell__description { color:rgba(255,255,255,.5); font-size:12px; line-height:16px; }
+.bitt-cell__value { flex:0 0 auto; font-size:14px; line-height:18px; }
+.bitt-cell--error { box-shadow:inset 0 0 0 1px rgba(223,80,80,.35); }
+.bitt-cell--success { box-shadow:inset 0 0 0 1px rgba(17,196,76,.25); }
+
+.bitt-chip {
+  width:max-content;
+  min-width:0;
+  height:32px;
+  box-sizing:border-box;
+  flex:0 0 auto;
+  padding:6px 12px;
+  border-radius:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#161a20;
+  color:#fff;
+  font-size:16px;
+  line-height:20px;
+  white-space:nowrap;
+  transition:opacity 140ms ease, transform 140ms ease, background-color 140ms ease;
+  transform-origin:center;
+}
+.bitt-chip--active { background:#fff; color:#0a0c0f; }
+.bitt-chip--loading {
+  position:relative;
+  width:57px;
+  overflow:hidden;
+  background:rgba(38,44,59,.6);
+  cursor:default;
+}
+.bitt-chip-group {
+  width:max-content;
+  max-width:none;
+  display:flex;
+  flex:0 0 auto;
+  flex-wrap:nowrap;
+  align-items:flex-start;
+  gap:8px;
+}
+
+.bitt-checkbox-label { display:inline-flex; align-items:center; gap:8px; color:#fff; font-size:14px; line-height:18px; cursor:pointer; }
+.bitt-checkbox-label input { position:absolute; opacity:0; pointer-events:none; }
+.bitt-checkbox-label img { width:24px; height:24px; object-fit:contain; flex:0 0 24px; }
+
+.bitt-order-status {
+  position:relative;
+  width:86px;
+  height:86px;
+  flex:0 0 86px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border-radius:20px;
+  background:#161a20;
+  color:#fff;
+  font-size:12px;
+  line-height:16px;
+  text-align:center;
+}
+.bitt-order-status__icon { width:64px; height:64px; display:block; object-fit:contain; flex:0 0 64px; }
+
+.bitt-order-status__morph {
+  position:relative;
+  display:block;
+  color:#fff;
+  flex:0 0 64px;
+}
+.bitt-order-status__morph-layer {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+}
+.bitt-order-status__label { position:absolute; left:8px; right:8px; bottom:5px; }
+.bitt-order-status--loading { background:rgba(38,44,59,.6); }
+.bitt-order-status__skeleton-shine {
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:-60px;
+  width:30px;
+  background:#fff;
+  opacity:.2;
+  filter:blur(37.5px);
+  pointer-events:none;
+  will-change:left;
+  animation:bitt-skeleton-shine 1.6s linear infinite;
+}
+
+.bitt-context-menu {
+  width:200px;
+  padding:12px;
+  border-radius:32px;
+  background:#161a20;
+  display:flex;
+  flex-direction:column;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+.bitt-context-menu__item-slot {
+  display:block;
+  width:100%;
+  height:44px;
+}
+
+.bitt-context-menu__item.bitt-button {
+  width:100%;
+  height:44px;
+  min-height:44px;
+  padding:12px;
+  justify-content:flex-start;
+  border-radius:999px;
+  background:transparent;
+  color:#fff;
+  font-size:16px;
+  line-height:20px;
+  text-align:left;
+  transition:
+    transform 140ms ease,
+    background-color 180ms ease,
+    color 140ms ease;
+}
+.bitt-context-menu__item.bitt-button--danger {
+  color:rgba(223,80,80,.75);
+}
+.bitt-context-menu__item .bitt-button__label {
+  padding-inline:0;
+}
+.bitt-context-menu__item img { width:24px; height:24px; object-fit:contain; }
+
+.bitt-context-menu__item.bitt-button:active:not(:disabled),
+.bitt-context-menu__item.bitt-button.bitt-button--active {
+  transform:none;
+}
+
+/* Controlled scrub focus must stay visible. This selector intentionally comes
+   after the local transparent ContextMenu base rule, which otherwise wins the
+   cascade over the shared Button menu active fill. */
+.bitt-context-menu__item.bitt-button.bitt-button--active {
+  background:#242a33;
+}
+
+.bitt-context-menu__separator {
+  display:block;
+  width:100%;
+  height:1px;
+  margin:8px 0;
+  background:rgba(233,240,243,.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitt-button,
+  .bitt-icon-button,
+  .bitt-chip,
+  .bitt-context-menu__item,
+  .bitt-skeleton-shine,
+  .bitt-order-status__skeleton-shine { animation:none; transition:none; }
+  .bitt-skeleton-shine,
+  .bitt-order-status__skeleton-shine { left:0; }
+}
+
+html.is-desktop-runtime .bitt-app-tabbar {
+  position:absolute;
+  left:0;
+  right:0;
+  width:100%;
+  transform:none;
+}
+
+html.is-desktop-runtime .bitt-app-tabbar--hidden {
+  transform:translateY(18px);
+}
+
+
+/* Figma 6029:123 — copy icon builds an 8-step dot-matrix check in ~208ms. */
+.bitt-copy-icon {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.bitt-copy-icon > img {
+  position: absolute;
+  inset: 0;
+  width: 24px;
+  height: 24px;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.bitt-copy-icon__copy {
+  opacity: 1;
+}
+
+.bitt-copy-icon__check {
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+}
+
+.bitt-copy-icon--confirmed .bitt-copy-icon__copy {
+  opacity: 0;
+}
+
+.bitt-copy-icon--confirmed .bitt-copy-icon__check {
+  opacity: 1;
+  animation: bitt-copy-check-build 208ms steps(8, end) forwards;
+}
+
+@keyframes bitt-copy-check-build {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitt-copy-icon--confirmed .bitt-copy-icon__check {
+    animation: none;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Segmented control — checkout bonus selector, Figma frame 6606:23748.
+   It uses the same slot-catching Motion timing as Navigator: the elevated
+   pill belongs to a real slot and snaps between slots on click or drag. */
+.bitt-segmented-control {
+  position: relative;
+  width: 100%;
+  height: 52px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  background: #0a0c0f;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bitt-segmented-control__slot {
+  appearance: none;
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bitt-segmented-control__slot:focus-visible {
+  outline: 2px solid rgba(255,255,255,.72);
+  outline-offset: -4px;
+}
+
+.bitt-segmented-control__pill {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  background: #242a33;
+  pointer-events: none;
+}
+
+.bitt-segmented-control__label {
+  position: relative;
+  z-index: 2;
+  padding-inline: 2px;
+  pointer-events: none;
+}
+
+.bitt-segmented-control--dragging,
+.bitt-segmented-control--dragging .bitt-segmented-control__slot {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitt-segmented-control__pill {
+    transition: none !important;
+  }
+}
+/* Large Button / optional discount extension — Figma 5335:13037.
+   Hidden by default; Button only renders it when showDiscount=true. */
+.bitt-button--large.bitt-button--has-discount .bitt-button__label--discounted {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.bitt-button__striked-label {
+  flex: 0 0 auto;
+  color: currentColor;
+}
+
+.bitt-button__discount {
+  height: 26px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #0a0c0f;
+  color: #fff;
+  font-family: "Martian Grotesk", var(--font-body);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+
+.bitt-location-card__devices--limited {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  color:rgba(255,195,0,.75);
+  white-space:nowrap;
+}
+.bitt-location-card__devices--limited > img {
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+  opacity:.75;
+}
+
+/* Payment-method Cell — current Figma masters 7370:32485 (selected) /
+   7370:32431 (default). Unlike history/order cells this variant is a bare
+   56px list row: the payment icon is 44px, copy is 16/20 + 12/16 and the
+   radio control is 24px. The final row drops its separator tail and is 44px. */
+.bitt-cell--payment {
+  appearance:none;
+  -webkit-appearance:none;
+  position:relative;
+  width:100%;
+  min-height:56px;
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#fff;
+  text-align:left;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.bitt-cell--payment-last {
+  min-height:44px;
+}
+
+.bitt-cell__payment-icon {
+  display:block;
+  width:44px;
+  height:44px;
+  flex:0 0 44px;
+  object-fit:contain;
+}
+
+.bitt-cell__payment-container {
+  flex:1 1 auto;
+  min-width:0;
+  min-height:56px;
+  display:flex;
+  flex-direction:column;
+  padding-bottom:15px;
+  border-bottom:1px solid rgba(233,240,243,.15);
+}
+
+.bitt-cell--payment-last .bitt-cell__payment-container {
+  min-height:44px;
+  padding-bottom:0;
+  border-bottom:0;
+}
+
+.bitt-cell__payment-content {
+  width:100%;
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.bitt-cell__payment-copy {
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  white-space:nowrap;
+}
+
+.bitt-cell__payment-title,
+.bitt-cell__payment-description {
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.bitt-cell__payment-title {
+  font-family:var(--font-body);
+  font-size:16px;
+  font-weight:400;
+  line-height:20px;
+  color:#fff;
+}
+
+.bitt-cell__payment-description {
+  font-family:var(--font-body);
+  font-size:12px;
+  font-weight:400;
+  line-height:16px;
+  color:rgba(255,255,255,.5);
+}
+
+.bitt-cell__payment-radio {
+  display:block;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  object-fit:contain;
+}
+

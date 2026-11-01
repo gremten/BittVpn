@@ -1,0 +1,79 @@
+.main-content {
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  padding:
+    calc(16px + var(--app-safe-top))
+    calc(20px + var(--app-safe-right))
+    calc(56px + 20px + 24px + max(32px, var(--app-safe-bottom)))
+    calc(20px + var(--app-safe-left));
+}
+.main-head { display:flex; flex-direction:column; gap:16px; width:100%; }
+.main-logo { height:48px; margin:0; display:flex; align-items:center; justify-content:center; font-family:"Nothing Font",sans-serif; font-size:32px; font-weight:400; line-height:48px; letter-spacing:0; }
+.main-promo { height:170px; padding:16px; border-radius:20px; display:flex; align-items:flex-start; color:#0a0c0f; }
+.main-promo--clickable { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.main-promo__copy { position:relative; z-index:2; width:155px; height:138px; display:flex; flex-direction:column; align-items:flex-start; }
+.main-promo__copy h2 { margin:0; font-family:"Martian Grotesk",var(--font-body); font-size:16px; font-weight:500; line-height:20px; }
+.main-promo__copy h2 .main-promo__japan {
+  color:#cf4646;
+  font-weight:800;
+  font-stretch:125%;
+  font-variation-settings:"wdth" 125, "wght" 800;
+}
+.main-promo__copy p { margin:8px 0 0; font-size:16px; line-height:20px; white-space:nowrap; }
+.main-promo__copy .bitt-button { margin-top:16px; height:34px; padding:7px 12px; font-size:16px; line-height:20px; }
+.main-promo__art { position:absolute; z-index:1; width:148px; height:170px; right:-16px; top:50%; transform:translateY(-50%); overflow:hidden; pointer-events:none; }
+.main-promo__art .sakura-animation {
+  position:absolute;
+  inset:-0.5px 0 auto 0;
+  width:148px;
+  height:171px;
+}
+.main-promo__art .sakura-animation__poster,
+.main-promo__art .sakura-animation__lottie {
+  position:absolute;
+  inset:0;
+  width:148px;
+  height:171px;
+}
+.main-promo__art .sakura-animation__poster {
+  display:block;
+  object-fit:contain;
+  opacity:1;
+  transition:opacity 120ms ease;
+}
+.main-promo__art .sakura-animation__session-host {
+  width:100%;
+  height:100%;
+}
+.main-promo__art .sakura-animation__lottie svg {
+  display:block;
+  width:148px !important;
+  height:171px !important;
+}
+.main-promo__art .sakura-animation--ready .sakura-animation__poster { opacity:0; }
+.main-section { width:100%; display:flex; flex-direction:column; gap:12px; }
+.main-section-bar { width:100%; min-height:24px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.main-section-bar h2 { margin:0; font-family:"Martian Grotesk",var(--font-body); font-size:16px; font-weight:500; line-height:20px; }
+.main-section-all { width:45px; min-width:45px; }
+.main-card-group { display:flex; flex-direction:column; gap:8px; width:100%; }
+.main-card-group--purchased .bitt-location-card { height:68px; }
+.main-card-group--available .bitt-location-card { height:100px; }
+.main-referral { min-height:168px; padding:16px; border-radius:20px; display:flex; flex-direction:column; gap:16px; }
+.main-referral__top { min-height:64px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.main-referral__copy h2 { margin:0; font-family:"Martian Grotesk",var(--font-body); font-size:16px; font-weight:500; line-height:20px; }
+.main-referral__copy p { margin:8px 0 0; color:#fff; font-size:16px; line-height:20px; }
+.main-referral__art { width:130px; height:45px; flex:0 0 130px; overflow:visible; }
+.main-referral__actions { margin-top:auto; }
+.main-referral__actions .bitt-icon-button { flex:0 0 56px; }
+
+@media (max-width:360px) {
+  .main-referral__art { transform:none; margin-left:0; }
+}
+
+.main-referral--clickable {
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}

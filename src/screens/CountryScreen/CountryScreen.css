@@ -1,0 +1,770 @@
+.country-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  padding:
+    calc(16px + var(--app-safe-top))
+    calc(20px + var(--app-safe-right))
+    calc(var(--purchase-tabbar-height) + var(--content-tabbar-gap) + var(--app-safe-bottom))
+    calc(20px + var(--app-safe-left));
+}
+
+.surface-card {
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-surface);
+}
+
+.country-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.country-hero {
+  position: relative;
+  height: 132px;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.country-hero-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 156px;
+  height: 100px;
+}
+
+.country-hero h1 {
+  margin: 0;
+  font-family: "Nothing Font", sans-serif;
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 48px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.online-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.online-badge img {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  transform-origin: center;
+  animation: online-blink 1600ms ease-in-out infinite;
+}
+
+@keyframes online-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.52;
+    transform: scale(0.94);
+  }
+}
+
+.online-badge span {
+  padding: 0 4px;
+}
+
+.country-map {
+  position: absolute;
+  z-index: 1;
+  /* Figma positions this 161×217 frame against the inner 330×100 data area.
+     The web element is a child of the 362px card, so account for the card's
+     16px padding here instead of anchoring against the outer edge. */
+  right: -14px;
+  top: 16px;
+  width: 161px;
+  height: 217px;
+  pointer-events: none;
+}
+
+.country-map-art {
+  position: absolute;
+  left: 4px;
+  top: 1.5px;
+  display: block;
+  width: 153px;
+  height: 214px;
+  max-width: none;
+}
+
+.city-label {
+  position: absolute;
+  top: 49px;
+  left: 34px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* The city marker keeps the internal 🔒 ping geometry/color, but is intentionally
+   static: animation belongs to the Online status badge, not to the map marker. */
+.city-ping-dot {
+  width: 4px;
+  height: 4px;
+  flex: 0 0 4px;
+  align-items: center;
+}
+
+.city-ping-dot .bitt-ping-dot {
+  animation: none;
+  transform: scale(1);
+  box-shadow: none;
+}
+
+.city-label > span:last-child {
+  padding-bottom: 2px;
+}
+
+.city-static-dot {
+  width:4px;
+  height:4px;
+  flex:0 0 4px;
+  border-radius:999px;
+  background:rgba(17,196,76,.75);
+}
+
+.city-label--offline {
+  padding-left:4px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.stat-card {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.stat-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-value,
+.small-body {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.caption {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.stat-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: contain;
+}
+
+.pulse-icon {
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.slots-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.slots-notice__icon {
+  display:block;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+}
+
+.slots-notice > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.section-title,
+.sheet-plan-block h2 {
+  margin: 0;
+  font-family: "Martian Grotesk", "Golos UI", "Golos Text", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.section-title {
+  min-height: 24px;
+}
+
+.ideal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px 20px;
+  border-radius: 20px;
+}
+
+.ideal-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.ideal-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: contain;
+}
+
+.ideal-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 0;
+}
+
+.ideal-copy--divided {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-primary-soft);
+}
+
+.body-medium {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.characteristics-all {
+  flex: 0 0 auto;
+}
+
+.characteristics-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px 20px;
+  border-radius: 20px;
+}
+
+
+.protocol-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.protocol-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  object-fit: contain;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .online-badge img { animation: none; }
+}
+
+@media (max-width: 360px) {
+  .stat-card { padding: 14px; }
+}
+
+
+.characteristics-card--clickable {
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+
+/* Purchased access is a variation of this same CountryScreen, not another route. */
+.country-maintenance-notice.bitt-card {
+  min-height:48px;
+  padding:12px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--bg-surface);
+}
+
+.country-maintenance-notice > img {
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+}
+
+.country-maintenance-notice > span {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:14px;
+  line-height:18px;
+  white-space:nowrap;
+}
+
+.country-devices-section {
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.country-section-bar {
+  width:100%;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.country-section-bar h2 {
+  margin:0;
+  font-family:"Martian Grotesk",var(--font-body);
+  font-size:16px;
+  font-weight:500;
+  line-height:20px;
+}
+
+.country-device-count.bitt-button {
+  flex:0 0 auto;
+}
+
+.country-device-count .bitt-button__label {
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding:0;
+}
+
+.country-device-count__text {
+  padding:0 4px;
+}
+
+.country-device-count__warning {
+  display:block;
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+  opacity:.75;
+}
+
+/* Figma 6502:41574: an expiring extra slot while used < limit is informational,
+   not a capacity warning. Counter content returns to primary white. */
+.country-device-count__warning--primary {
+  opacity:1;
+  filter:grayscale(1) brightness(0) invert(1);
+}
+
+.country-device-list {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.country-device-card.bitt-card {
+  width:100%;
+  min-height:68px;
+  padding:12px;
+  border-radius:16px;
+}
+
+.country-device-card__content {
+  width:100%;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.country-device-card__data {
+  min-width:0;
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+}
+
+.country-device-card__icon {
+  width:44px;
+  height:44px;
+  flex:0 0 44px;
+  padding:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(138,140,143,.15);
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--bg-page);
+}
+
+.country-device-card__icon img {
+  display:block;
+  width:37.448px;
+  height:37.448px;
+  max-width:none;
+}
+
+.country-device-card__copy {
+  min-width:0;
+  height:44px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+}
+
+.country-device-card__copy b {
+  max-width:240px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:16px;
+  font-weight:400;
+  line-height:20px;
+  white-space:nowrap;
+}
+
+.country-device-card__copy small {
+  color:var(--text-secondary);
+  font-size:12px;
+  line-height:16px;
+  white-space:nowrap;
+}
+
+.country-device-card__more {
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+}
+
+.country-limit-notice-motion {
+  width:100%;
+  min-width:0;
+  overflow:visible;
+  will-change:transform,opacity,height;
+}
+
+.country-device-card-motion {
+  width:100%;
+  min-width:0;
+  transform-origin:center top;
+  will-change:transform,opacity;
+}
+
+
+.country-limit-notice.bitt-card {
+  width:100%;
+  min-height:48px;
+  padding:12px;
+  border-radius:16px;
+  background:#27210e;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+/* Figma 6502:41574: once capacity is no longer reached, the same expiry
+   message becomes a regular surface notification with primary-white glyphs. */
+.country-limit-notice--expiry.bitt-card {
+  background:var(--bg-surface);
+}
+
+.country-limit-notice--expiry .country-limit-notice__data > img {
+  filter:grayscale(1) brightness(0) invert(1);
+}
+
+.country-limit-notice--expiry .country-limit-notice__close img {
+  opacity:1;
+}
+
+.country-limit-notice__data {
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.country-limit-notice__data > img {
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+}
+
+.country-limit-notice__data span {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:14px;
+  line-height:18px;
+  white-space:nowrap;
+}
+
+.country-limit-notice__close {
+  appearance:none;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  margin:0;
+  padding:0;
+  border:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.country-limit-notice__close img {
+  width:24px;
+  height:24px;
+  display:block;
+  opacity:.75;
+}
+
+.country-limit-upgrade.bitt-button {
+  min-height:56px;
+}
+
+.country-limit-upgrade__copy {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+}
+
+.country-limit-upgrade__copy > span {
+  font-size:16px;
+  line-height:20px;
+}
+
+.country-limit-upgrade__copy small {
+  color:var(--text-secondary);
+  font-size:12px;
+  line-height:16px;
+}
+
+@media (max-width:360px) {
+  .country-maintenance-notice > span { font-size:13px; }
+  .country-device-card__copy b { max-width:190px; }
+}
+
+
+/* Device interaction / delete mode ------------------------------------------------ */
+
+.country-device-card--interactive {
+  cursor:pointer;
+  transform-origin:center;
+  transition:transform 120ms ease;
+  touch-action:pan-y;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.country-device-card--interactive:active {
+  transform:scale(.985);
+}
+
+.country-device-card--context-open {
+  position:relative;
+  z-index:57;
+  transform:translateY(var(--context-shift-y, 0px));
+  transition:transform 280ms cubic-bezier(.2,.8,.2,1);
+}
+
+.country-device-card__selection {
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.country-device-card__selection .bitt-checkbox-label {
+  width:24px;
+  height:24px;
+  gap:0;
+}
+
+.country-device-card__more {
+  appearance:none;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  cursor:pointer;
+  transform-origin:center;
+  transition:transform 140ms ease;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.country-device-card__more:active {
+  transform:scale(.985);
+}
+
+.country-device-card__more img {
+  display:block;
+  width:24px;
+  height:24px;
+}
+
+.country-device-context-overlay {
+  appearance:none;
+  position:fixed;
+  z-index:55;
+  top:0;
+  bottom:0;
+  left:50%;
+  width:min(100%,var(--app-max-width));
+  padding:0;
+  border:0;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,.4);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:none;
+  animation:country-context-overlay-in 240ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes country-context-overlay-in {
+  from {
+    background:rgba(0,0,0,0);
+    backdrop-filter:blur(0);
+    -webkit-backdrop-filter:blur(0);
+  }
+  to {
+    background:rgba(0,0,0,.4);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
+}
+
+.country-device-context-menu.bitt-context-menu {
+  position:fixed;
+  z-index:58;
+  height:217px;
+  transform:translateY(var(--context-shift-y, 0px));
+  transition:
+    transform 280ms cubic-bezier(.2,.8,.2,1),
+    opacity 180ms ease;
+  animation:country-context-menu-in 180ms ease-out both;
+}
+
+@keyframes country-context-menu-in {
+  from { opacity:0; }
+  to { opacity:1; }
+}
+
+
+.country-delete-tabbar__button.bitt-button {
+  background:#24191b;
+  color:rgba(223,80,80,.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .country-device-card--interactive,
+  .country-device-card__more {
+    transition:none;
+  }
+
+  .country-device-context-overlay,
+  .country-device-context-menu.bitt-context-menu {
+    animation:none;
+  }
+}
+
+html.is-desktop-runtime .country-device-context-overlay {
+  position:absolute;
+  left:0;
+  right:0;
+  width:100%;
+  transform:none;
+}
+
+html.is-desktop-runtime .country-device-context-menu.bitt-context-menu {
+  position:fixed;
+}

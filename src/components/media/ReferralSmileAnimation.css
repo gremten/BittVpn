@@ -1,0 +1,168 @@
+/*
+ * Figma 4790:17246.
+ * Master: 45 + 10 + 24 + 10 + 45 = 134px.
+ * t-main referral instance overrides the gap to 8px => 130px.
+ */
+.referral-smile-animation {
+  --referral-smile-gap: 10px;
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:var(--referral-smile-gap);
+  width:max-content;
+  height:45px;
+  flex:0 0 auto;
+  overflow:visible;
+  pointer-events:none;
+}
+
+.referral-smile-animation__poster {
+  display:block;
+  width:calc(114px + var(--referral-smile-gap) + var(--referral-smile-gap));
+  height:45px;
+  flex:0 0 auto;
+  object-fit:contain;
+  opacity:1;
+}
+
+.referral-smile-animation--ready .referral-smile-animation__poster {
+  display:none;
+}
+
+.referral-smile-face {
+  position: relative;
+  width: 45px;
+  height: 45px;
+  flex: 0 0 45px;
+  overflow: visible;
+}
+
+/*
+ * The exported smile SVGs are 47x47 because Figma export includes the tiny
+ * overflow of the dotted ring. The actual component frame remains 45x45.
+ */
+.referral-smile-face__state {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 47px;
+  height: 47px;
+  display: block;
+  max-width: none;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.referral-smile-heart {
+  position: relative;
+  width: 24px;
+  height: 22px;
+  flex: 0 0 24px;
+}
+
+.referral-smile-heart__state {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.referral-smile-heart__state--full {
+  inset: 0;
+  width: 24px;
+  height: 22px;
+}
+
+.referral-smile-heart__state--mini {
+  left: 2px;
+  top: 2px;
+  width: 20px;
+  height: 18px;
+}
+
+/*
+ * Prototype timing read from Figma reactions:
+ * right: front 800ms -> to-right 958.216ms -> hold 9s -> front 1022.094ms.
+ */
+.referral-smile-face--right .referral-smile-face__state--front {
+  animation: referral-right-front 11.78031s infinite;
+}
+
+.referral-smile-face--right .referral-smile-face__state--look {
+  animation: referral-right-look 11.78031s infinite;
+}
+
+@keyframes referral-right-front {
+  0%, 6.7909% { opacity: 1; }
+  14.9248%, 91.3244% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes referral-right-look {
+  0%, 6.7909% { opacity: 0; }
+  14.9248%, 91.3244% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/*
+ * left: front 800ms -> to-left 1250.123ms -> hold 9s -> front 1022.094ms.
+ */
+.referral-smile-face--left .referral-smile-face__state--front {
+  animation: referral-left-front 12.07222s infinite;
+}
+
+.referral-smile-face--left .referral-smile-face__state--look {
+  animation: referral-left-look 12.07222s infinite;
+}
+
+@keyframes referral-left-front {
+  0%, 6.6268% { opacity: 1; }
+  16.9822%, 91.5335% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes referral-left-look {
+  0%, 6.6268% { opacity: 0; }
+  16.9822%, 91.5335% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/*
+ * heart: mini 300ms -> full 598.885ms -> hold 800ms -> mini 958.217ms.
+ */
+.referral-smile-heart__state--mini {
+  animation: referral-heart-mini 2.657102s infinite;
+}
+
+.referral-smile-heart__state--full {
+  animation: referral-heart-full 2.657102s infinite;
+}
+
+@keyframes referral-heart-mini {
+  0%, 11.2906% { opacity: 1; }
+  33.8294%, 63.9364% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes referral-heart-full {
+  0%, 11.2906% { opacity: 0; }
+  33.8294%, 63.9364% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .referral-smile-face__state,
+  .referral-smile-heart__state {
+    animation: none !important;
+  }
+
+  .referral-smile-face__state--front,
+  .referral-smile-heart__state--mini {
+    opacity: 1;
+  }
+
+  .referral-smile-face__state--look,
+  .referral-smile-heart__state--full {
+    opacity: 0;
+  }
+}
