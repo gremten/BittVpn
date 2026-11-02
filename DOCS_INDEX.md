@@ -77,3 +77,5 @@ Total documented component/screen sources: **63**.
 - `src/utils/dotLottie.md` — local `.lottie` ZIP/decompression loader used by Sakura.
 
 - `src/utils/sakuraSession.md` — page-session persistent Sakura Lottie DOM/animation owner.
+
+- `brand/logo-concepts/README.md` — BittVPN logo concepts (B × systole), not used by the app yet; `BittLogoLive.js` is documented in `brand/logo-concepts/BittLogoLive.md`.
