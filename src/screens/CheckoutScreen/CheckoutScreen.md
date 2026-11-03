@@ -33,6 +33,8 @@ File: `5ks9FYkDbV4fcg60G4SLjf`, page `🛠️ Userflow и прототипиро
 - bonus-info BottomSheet visibility;
 - payment-method BottomSheet visibility.
 
+Bonus deduction is `calculateBonusDeduction(PROTOTYPE_BONUS_BALANCE, access + extras)` — the whole balance, never more than the order sum (decision 2026-11-03). `BonusCard` shows that exact amount (`Списать N ₽`) and is not rendered when it is 0.
+
 The live total is always calculated from the same access/extras/bonus state used by the visible breakdown. That exact total is passed to `PaymentMethodSheet`; no payment price is hardcoded from the Figma sample.
 
 ## Payment flow

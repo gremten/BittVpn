@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import './CheckoutScreen.css';
-import { calculateAccessPricing, EXTRA_DEVICE_PRICE } from '../../config/pricing';
+import {
+  calculateAccessPricing,
+  calculateBonusDeduction,
+  EXTRA_DEVICE_PRICE,
+  PROTOTYPE_BONUS_BALANCE,
+} from '../../config/pricing';
 import { syncTelegramChrome } from '../../telegram';
 import {
   BonusBalanceSheet,
@@ -21,7 +26,9 @@ export default function CheckoutScreen({ location, months, onStartPayment }) {
   const accessPricing = calculateAccessPricing(location.pricePerMonth, months);
   const accessCost = accessPricing.price;
   const extraDevicesCost = extraDevices * EXTRA_DEVICE_PRICE;
-  const bonusAmount = useBonuses ? Math.min(100, accessCost + extraDevicesCost) : 0;
+  const maxBonusDeduction = calculateBonusDeduction(PROTOTYPE_BONUS_BALANCE, accessCost + extraDevicesCost);
+  const hasBonusBalance = maxBonusDeduction > 0;
+  const bonusAmount = useBonuses ? maxBonusDeduction : 0;
   const total = accessCost + extraDevicesCost - bonusAmount;
 
   useEffect(() => {
@@ -64,12 +71,15 @@ export default function CheckoutScreen({ location, months, onStartPayment }) {
             <CheckoutSummary locationName={location.countryName} months={months} accessCost={accessCost} />
             <ExtraDevicesCard count={extraDevices} onChange={setExtraDevices} />
           </div>
-          <BonusCard
-            enabled={useBonuses}
-            onChange={setUseBonuses}
-            onInfo={() => setBonusInfoOpen(true)}
-            infoOpen={bonusInfoOpen}
-          />
+          {hasBonusBalance && (
+            <BonusCard
+              enabled={useBonuses}
+              onChange={setUseBonuses}
+              onInfo={() => setBonusInfoOpen(true)}
+              infoOpen={bonusInfoOpen}
+              maxDeduction={maxBonusDeduction}
+            />
+          )}
           <PaymentBreakdown
             accessCost={accessCost}
             originalAccessCost={accessPricing.originalPrice}

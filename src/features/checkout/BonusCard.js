@@ -1,12 +1,14 @@
 import { Block, SegmentedControl } from '../../components/ui';
 import infoIcon from '../../assets/icons/info.svg';
 
-const BONUS_OPTIONS = [
-  { value: false, label: 'Не списывать' },
-  { value: true, label: 'Списать 100' },
-];
+function getBonusOptions(maxDeduction) {
+  return [
+    { value: false, label: 'Не списывать' },
+    { value: true, label: `Списать ${maxDeduction.toLocaleString('ru-RU')} ₽` },
+  ];
+}
 
-export default function BonusCard({ enabled, onChange, onInfo, infoOpen = false }) {
+export default function BonusCard({ enabled, onChange, onInfo, infoOpen = false, maxDeduction }) {
   return (
     <Block className="checkout-bonus-card surface-card">
       <div className="checkout-bonus-heading">
@@ -23,7 +25,7 @@ export default function BonusCard({ enabled, onChange, onInfo, infoOpen = false 
         </button>
       </div>
       <SegmentedControl
-        options={BONUS_OPTIONS}
+        options={getBonusOptions(maxDeduction)}
         value={enabled}
         onChange={onChange}
         ariaLabel="Списание бонусных рублей"

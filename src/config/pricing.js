@@ -1,6 +1,21 @@
 export const MAX_MONTHS = 6;
 export const EXTRA_DEVICE_PRICE = 69;
 
+// Prototype fixture: the bonus balance a person has at checkout.
+// The real value comes from the backend (referral bonuses).
+export const PROTOTYPE_BONUS_BALANCE = 100;
+
+/*
+  Bonus deduction rule (product decision 2026-11-03): the whole balance is
+  spent, but never more than the order sum. The checkout control shows exactly
+  this amount, so the label never promises more than will be deducted.
+*/
+export function calculateBonusDeduction(balance, orderSum) {
+  const safeBalance = Math.max(0, Number(balance) || 0);
+  const safeSum = Math.max(0, Number(orderSum) || 0);
+  return Math.min(safeBalance, safeSum);
+}
+
 /*
   Duration discount curve from the updated purchase-sheet design.
   Months 1–2 keep the base price. Starting at month 3 the discount grows
