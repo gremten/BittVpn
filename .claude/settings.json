@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "mcp__Figma__*",
-      "mcp__claude_ai_Figma__*"
+      "mcp__claude_ai_Figma__*",
+      "mcp__3e282344-8cf4-40ed-9893-c5f2156e3a91__*"
     ]
   }
 }
