@@ -5,7 +5,7 @@
 ## Что доступно (figma.listAvailableFontsAsync, всего 9014 шрифтов, Martian 72)
 - family «**Martian Grotesk**» (именно такая; «Martian Grotesk VF» и «Martian Grotesk Std Rg» как family НЕ существуют): 63 стиля = ширина × насыщенность.
   - Ширины: `Cn`, `Nr`, `Std`, `sWd`, `Wd`, `xWd`, `uWd`.
-  - Насыщенности: `Th`, `xLt`, `Lt`, `Rg`, `Md`, `Bd`, `xBd`, `Bl`, `Ult` (для `Cn`, `Nr`, `Std`, `Wd`, `sWd`, `uWd`, `xWd` все девять; у `Std` нет `Th`? есть: Std Th, xLt, Lt, Rg, Md, Bd, xBd, Bl, Ult).
+  - Насыщенности: `Th`, `xLt`, `Lt`, `Rg`, `Md`, `Bd`, `xBd`, `Bl`, `Ult` (в списке доступных стилей 9 на каждую ширину).
   - Примеры: «Std Rg», «Std Md», «Std Bd», «Nr Rg», «Wd Md».
 - family «Martian Mono»: Thin, ExtraLight, Light, Regular, Medium, SemiBold, Bold, ExtraBold, SemiExpanded Regular (обычные имена).
 
