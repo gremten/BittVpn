@@ -28,6 +28,21 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .replay { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); height: 32px; padding: 7px 12px; border: 0; border-radius: 999px; background: #161A20; color: rgba(255,255,255,.7); font: 400 14px/18px "Golos UI", sans-serif; cursor: pointer; opacity: .85; }
 .replay:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .replay:active { transform: scale(0.985); }
+.tune-btn { right: auto; left: calc(8px + env(safe-area-inset-left, 0px)); }
+/* панель подгонки шара: служебная, в приложение не переносится */
+.tune { position: fixed; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 16px)); max-height: 46%; overflow: auto;
+  padding: 10px 12px; border-radius: 16px; background: rgba(22,26,32,.94); color: #fff; font: 12px/16px system-ui, -apple-system, "Segoe UI", sans-serif; z-index: 20; display: flex; flex-direction: column; gap: 4px; }
+.tune h2 { font: 600 13px/18px system-ui, -apple-system, sans-serif; }
+.tune .row { display: grid; grid-template-columns: 104px 1fr 48px; align-items: center; gap: 8px; min-height: 24px; }
+.tune input[type=range] { width: 100%; min-width: 0; accent-color: #fff; }
+.tune output { font-variant-numeric: tabular-nums; text-align: right; color: rgba(255,255,255,.75); }
+.tune .hint2 { color: rgba(255,255,255,.5); }
+.tune .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tune button { height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: #242A33; color: #fff; font: 500 12px/16px system-ui, sans-serif; cursor: pointer; }
+.tune button.primary { background: #fff; color: #0A0C0F; }
+.tune button:focus-visible, .tune input:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.tune textarea { width: 100%; min-height: 120px; resize: vertical; border: 0; border-radius: 8px; padding: 8px; background: #0A0C0F; color: rgba(255,255,255,.85); font: 11px/15px ui-monospace, Menlo, monospace; }
+body.tuning canvas { cursor: grab; touch-action: none; }
 </style>
 </head>
 <body>
@@ -47,6 +62,26 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 </div>
 <!-- служебная кнопка прототипа (не часть дизайна); скрыта в режимах записи и стоп-кадра -->
 <button class="replay" id="replay" type="button">Перезапустить</button>
+<button class="replay tune-btn" id="tuneBtn" type="button">Настройка</button>
+<div class="tune" id="tune" hidden>
+  <h2>Подгонка шара (финальный кадр)</h2>
+  <div class="hint2">Тяни шар пальцем или мышью над панелью, колесо меняет размер.</div>
+  <div class="row"><label for="tDx">Сдвиг X, px</label><input type="range" id="tDx" min="-400" max="400" step="1"><output id="oDx"></output></div>
+  <div class="row"><label for="tDy">Сдвиг Y, px</label><input type="range" id="tDy" min="-500" max="500" step="1"><output id="oDy"></output></div>
+  <div class="row"><label for="tR">Радиус, px</label><input type="range" id="tR" min="40" max="1400" step="1"><output id="oR"></output></div>
+  <div class="row"><label for="tLat">Широта вида, °</label><input type="range" id="tLat" min="-20" max="80" step="0.5"><output id="oLat"></output></div>
+  <div class="row"><label for="tLon">Долгота вида, °</label><input type="range" id="tLon" min="0" max="180" step="0.5"><output id="oLon"></output></div>
+  <div class="row"><label for="tTilt">Наклон оси, °</label><input type="range" id="tTilt" min="-45" max="45" step="0.5"><output id="oTilt"></output></div>
+  <div class="row"><label for="tMx">Страны X, px</label><input type="range" id="tMx" min="-150" max="150" step="1"><output id="oMx"></output></div>
+  <div class="row"><label for="tMy">Страны Y, px</label><input type="range" id="tMy" min="-150" max="150" step="1"><output id="oMy"></output></div>
+  <div class="actions">
+    <button class="primary" id="tCopy" type="button">Скопировать значения</button>
+    <button id="tReset" type="button">Сбросить</button>
+    <button id="tPlay" type="button">Играть</button>
+    <button id="tClose" type="button">Закрыть</button>
+  </div>
+  <textarea id="tOut" readonly aria-label="Значения для отправки" hidden></textarea>
+</div>
 <script>
 /* =====================================================================
    НАСТРОЙКИ. Все времена в миллисекундах от старта (0 мс).
@@ -197,6 +232,7 @@ const hash = location.hash.slice(1);
 const hashT = /^t-(\d+)$/.exec(hash);
 const RECORD = params.get('record') === '1' || hash === 'record' || hash === 'record-autoplay';
 const AUTOPLAY = params.get('autoplay') === '1' || hash === 'record-autoplay';
+const TUNE_HASH = hash === 'tune';
 const FIXED_T = params.has('t') ? parseFloat(params.get('t')) : hashT ? +hashT[1] : null;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const T = SETTINGS.timeline;
@@ -310,6 +346,8 @@ const bC = document.getElementById('btnContinue');
 const bS = document.getElementById('btnSkip');
 
 let L = {};
+// служебная подгонка (панель #tune): абсолютные значения для текущего экрана; null — авто-подгонка
+const TUNE = { on: false, R: null, cx: null, cy: null, lat: null, lon: null, tilt: null, mark: [0, 0], auto: null };
 function labelBox(at, x, y, w, h) {
   const gap = SETTINGS.label.gap;
   let lx = x - w / 2, ly = y - h / 2;
@@ -390,6 +428,11 @@ function layout() {
   const cyf = cyOf(Rf);
   L = { ls, lcx, lcy, Rf, cxf, cyf, Rc, logoSize, textTop, view: [best.lat0, best.lon0], labelAt: best.combo, Rfit, lfont, lh,
         focus: [g.closeFocus[0], best.lon0 + SETTINGS.spin.deg] };
+  L.auto = { R: Rf, cx: cxf, cy: cyf, lat: best.lat0, lon: best.lon0, Hf };
+  if (TUNE.on && TUNE.R != null) {
+    L.Rf = TUNE.R; L.cxf = TUNE.cx; L.cyf = TUNE.cy; L.view = [TUNE.lat, TUNE.lon];
+    L.focus = [g.closeFocus[0], TUNE.lon + SETTINGS.spin.deg];
+  }
 
 
   L.logoDots = [];
@@ -441,8 +484,8 @@ function camera(t) {
   const g = SETTINGS.globe;
   const pO = E.pullOut(prog(t, T.pullOut));
   const R = lerp(L.Rc, L.Rf, pO);
-  const cx = W / 2;
-  const roll = lerp(g.axisTiltInMorph, g.axisTiltDeg, pO);
+  const cx = lerp(W / 2, L.cxf, pO); // без подгонки L.cxf = W / 2
+  const roll = lerp(g.axisTiltInMorph, TUNE.on && TUNE.tilt != null ? TUNE.tilt : g.axisTiltDeg, pO);
   const cy = lerp(L.lcy, L.cyf, pO);
   const lat0 = lerp(L.focus[0], L.view[0], pO);
   const es = E.spin(prog(t, T.spin));
@@ -599,7 +642,9 @@ function render(t) {
 
   // ---- красная точка, дуги, подписи ----
   const pl = SETTINGS.places;
-  const ruP = P(Math.cos(pl.RU.lat * RAD), Math.sin(pl.RU.lat * RAD), pl.RU.lon);
+  const mo = TUNE.on ? TUNE.mark : [0, 0];
+  const PM = (a, b, c) => { const r = P(a, b, c); r[0] += mo[0]; r[1] += mo[1]; return r; };
+  const ruP = PM(Math.cos(pl.RU.lat * RAD), Math.sin(pl.RU.lat * RAD), pl.RU.lon);
   const pR = E.redDot(prog(t, T.redDot));
   const cp = Math.cos(cam.lat0 * RAD), sp = Math.sin(cam.lat0 * RAD), D = g.dist, f = cam.R * Math.sqrt(D * D - 1);
   const crl = Math.cos(cam.roll * RAD), srl = Math.sin(cam.roll * RAD);
@@ -609,7 +654,7 @@ function render(t) {
     const x = cl * Math.sin(dl), y = p[1], z = cl * Math.cos(dl);
     const y2 = y * cp - z * sp, z2 = y * sp + z * cp; const k = f / (D - z2);
     const xr = x * crl + y2 * srl, yr = -x * srl + y2 * crl;
-    return [cam.cx + xr * k, cam.cy - yr * k, z2];
+    return [cam.cx + xr * k + mo[0], cam.cy - yr * k + mo[1], z2];
   };
   const [fz0, fz1] = SETTINGS.depthFade;
   const vis = z => smooth((z - fz0) / (fz1 - fz0));
@@ -618,7 +663,7 @@ function render(t) {
   ctx.font = L.lfont;
   const edgeK = {};
   for (const key in pl) {
-    const p = pl[key]; const [x, y] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const p = pl[key]; const [x, y] = PM(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
     const w = ctx.measureText(p.label).width + 2 * SETTINGS.label.padX;
     const [lx] = labelBox(L.labelAt[key] || p.at, x, y, w, L.lh);
     const x0 = Math.min(lx, x - 5), x1 = Math.max(lx + w, x + 5);
@@ -656,7 +701,7 @@ function render(t) {
   }
   // точки-цели
   for (const key of SETTINGS.arcOrder) {
-    const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const p = pl[key]; const [x, y, z] = PM(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
     const k = (arrived[key] || 0) * vis(z) * edgeK[key]; if (k <= 0) continue;
     const r = 3.2 * (0.6 + 0.4 * E.ui(arrived[key]));
     const gr = ctx.createRadialGradient(x * dpr, y * dpr, 0, x * dpr, y * dpr, 10 * dpr);
@@ -688,7 +733,7 @@ function render(t) {
   const lb = SETTINGS.label;
   ctx.font = L.lfont; ctx.textBaseline = 'middle';
   for (const key in pl) {
-    const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const p = pl[key]; const [x, y, z] = PM(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
     const k0 = key === 'RU' ? clamp01(prog(t, T.redDot)) : (arrived[key] || 0);
     const k = E.ui(k0) * vis(z) * edgeK[key]; if (k <= 0.002) continue;
     const tw = ctx.measureText(p.label).width, w = tw + 2 * lb.padX, h = L.lh;
@@ -751,6 +796,83 @@ window.addEventListener('keydown', e => { if ((e.key === 'r' || e.key === 'к') 
 const replay = document.getElementById('replay');
 if (RECORD || FIXED_T != null) replay.hidden = true;
 replay.addEventListener('click', () => { if (REDUCED) { render(T.end); return; } play(); });
+
+// ---- панель подгонки шара ----
+const tuneBtn = document.getElementById('tuneBtn'), tunePanel = document.getElementById('tune');
+if (RECORD || FIXED_T != null) tuneBtn.hidden = true;
+const $ = id => document.getElementById(id);
+const fields = [ // [ползунок, вывод, чтение, запись]
+  ['tDx', 'oDx', () => TUNE.cx - W / 2, v => { TUNE.cx = W / 2 + v; }],
+  ['tDy', 'oDy', () => TUNE.cy - L.auto.cy, v => { TUNE.cy = L.auto.cy + v; }],
+  ['tR', 'oR', () => TUNE.R, v => { TUNE.R = v; }],
+  ['tLat', 'oLat', () => TUNE.lat, v => { TUNE.lat = v; }],
+  ['tLon', 'oLon', () => TUNE.lon, v => { TUNE.lon = v; }],
+  ['tTilt', 'oTilt', () => TUNE.tilt, v => { TUNE.tilt = v; }],
+  ['tMx', 'oMx', () => TUNE.mark[0], v => { TUNE.mark[0] = v; }],
+  ['tMy', 'oMy', () => TUNE.mark[1], v => { TUNE.mark[1] = v; }],
+];
+const fmt = v => (Math.round(v * 10) / 10).toString();
+function tuneSync() {
+  for (const [sId, oId, get] of fields) { const v = get(); $(sId).value = v; $(oId).textContent = fmt(v); }
+  $('tOut').value = tuneBlock();
+}
+// значения панели ложатся прямо в геометрию кадра, без повторного подбора ракурса (он ~0.2 с)
+function tuneApply() {
+  L.Rf = TUNE.R; L.cxf = TUNE.cx; L.cyf = TUNE.cy; L.view = [TUNE.lat, TUNE.lon];
+  L.focus = [SETTINGS.globe.closeFocus[0], TUNE.lon + SETTINGS.spin.deg];
+  cancelAnimationFrame(raf); render(T.end); tuneSync();
+}
+function tuneReset() {
+  TUNE.R = null; resize(); // авто-подгонка
+  Object.assign(TUNE, { R: L.auto.R, cx: L.auto.cx, cy: L.auto.cy, lat: L.auto.lat, lon: L.auto.lon, tilt: SETTINGS.globe.axisTiltDeg, mark: [0, 0] });
+  tuneApply();
+}
+function tuneBlock() {
+  const a = L.auto || {}, Hf = a.Hf || 1, g = SETTINGS.globe;
+  const r1 = v => Math.round(v * 10) / 10, r3 = v => Math.round(v * 1000) / 1000;
+  return [
+    `// BittVPN заставка: подгонка шара, экран ${W}×${H}, свободная высота над текстом Hf = ${r1(Hf)} px`,
+    `globe: {`,
+    `  finalView: [${r1(TUNE.lat)}, ${r1(TUNE.lon)}],      // широта и долгота центра вида, °`,
+    `  axisTiltDeg: ${r1(TUNE.tilt)},                 // наклон оси вправо, °`,
+    `  radiusPx: ${r1(TUNE.R)},                   // радиус на этом экране (авто: ${r1(a.R)})`,
+    `  radiusOfFree: ${r3(TUNE.R / Hf)},             // радиус / Hf`,
+    `  centerDxPx: ${r1(TUNE.cx - W / 2)},                 // сдвиг центра от середины экрана`,
+    `  centerDyPx: ${r1(TUNE.cy - a.cy)},                 // сдвиг центра от авто-подгонки (авто cy: ${r1(a.cy)})`,
+    `  centerYOfFree: ${r3((TUNE.cy - g.topInset) / Hf)},            // (центр по Y − верхний отступ) / Hf`,
+    `},`,
+    `markersOffsetPx: [${r1(TUNE.mark[0])}, ${r1(TUNE.mark[1])}],   // общий сдвиг точек и подписей стран`,
+  ].join('\n');
+}
+function tuneOpen() {
+  TUNE.on = true; tunePanel.hidden = false; document.body.classList.add('tuning');
+  if (TUNE.R == null) tuneReset(); else tuneApply();
+}
+function tuneClose() { tunePanel.hidden = true; document.body.classList.remove('tuning'); }
+for (const [sId, , , set] of fields) $(sId).addEventListener('input', e => { set(+e.target.value); tuneApply(); });
+tuneBtn.addEventListener('click', () => (tunePanel.hidden ? tuneOpen() : tuneClose()));
+$('tClose').addEventListener('click', tuneClose);
+$('tReset').addEventListener('click', tuneReset);
+$('tPlay').addEventListener('click', () => { resize(); play(); });
+$('tCopy').addEventListener('click', () => {
+  const text = tuneBlock(); $('tOut').value = text; $('tOut').hidden = false;
+  const done = () => { $('tCopy').textContent = 'Скопировано'; setTimeout(() => { $('tCopy').textContent = 'Скопировать значения'; }, 1500); };
+  const fallback = () => { $('tOut').focus(); $('tOut').select(); $('tCopy').textContent = 'Выделено: скопируй вручную'; };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+});
+// перетаскивание шара и колесо — только в режиме подгонки
+let drag = null;
+canvas.addEventListener('pointerdown', e => { if (!TUNE.on || tunePanel.hidden) return; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  TUNE.cx += e.clientX - drag.x; TUNE.cy += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; tuneApply();
+});
+['pointerup', 'pointercancel'].forEach(n => canvas.addEventListener(n, () => { drag = null; }));
+canvas.addEventListener('wheel', e => {
+  if (!TUNE.on || tunePanel.hidden) return; e.preventDefault();
+  TUNE.R = Math.max(40, TUNE.R * Math.exp(-e.deltaY * 0.0015)); tuneApply();
+}, { passive: false });
+if (TUNE_HASH) window.intro.ready.then(() => tuneOpen());
 })();
 </script>
 </body>
