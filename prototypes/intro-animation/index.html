@@ -14,7 +14,7 @@
 html, body { height: 100%; background: var(--bg); overflow: hidden; }
 body { font-family: "Golos UI", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
 #stage { position: fixed; inset: 0; }
-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; } /* экран без прокрутки: жесты по планете не листают страницу */
 .text { text-align: center; margin-bottom: 24px; pointer-events: none; }
 .title { font-family: "Martian Grotesk", sans-serif; font-weight: 500; font-size: clamp(26px, 7.9vw, 32px); line-height: 1.25; white-space: nowrap; opacity: 0; will-change: transform, opacity; }
 .subtitle { margin-top: 8px; font-size: 16px; line-height: 22px; font-weight: 400; color: rgba(255,255,255,.5); opacity: 0; will-change: transform, opacity; }
@@ -78,6 +78,9 @@ body.tuning canvas { cursor: grab; touch-action: none; }
   <div class="row"><label for="tMy">Страны Y, px</label><input type="range" id="tMy" min="-150" max="150" step="1"><output id="oMy"></output></div>
   <div class="row"><label for="tStep">Шаг точек, °</label><input type="range" id="tStep" min="1.2" max="5" step="0.1"><output id="oStep"></output></div>
   <div class="row"><label for="tDot">Размер точек, px</label><input type="range" id="tDot" min="0.4" max="4" step="0.05"><output id="oDot"></output></div>
+  <div class="row"><label for="tDecay">Инерция: затухание, 1/с</label><input type="range" id="tDecay" min="0.5" max="10" step="0.1"><output id="oDecay"></output></div>
+  <div class="row"><label for="tSens">Чувствительность</label><input type="range" id="tSens" min="0.3" max="2.5" step="0.05"><output id="oSens"></output></div>
+  <div class="row"><label for="tResume">Пауза до вращения, мс</label><input type="range" id="tResume" min="0" max="3000" step="50"><output id="oResume"></output></div>
   <div class="actions">
     <button class="primary" id="tCopy" type="button">Скопировать значения</button>
     <button id="tReset" type="button">Сбросить</button>
@@ -165,6 +168,15 @@ const SETTINGS = {
     idleDegPerSec: 2.5,            // фоновое вращение (ref3: ≈2–3°/с), фигуры едут вправо
     revealSpread: 0.55,            // доля окна morph на разбег проявления точек от центра
     revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
+  },
+  interact: {                      // правка 10: планету можно крутить пальцем после вступления (как физический глобус)
+    sensitivity: 1,                // поворот на пиксель: 1 — точка под пальцем идёт за пальцем у центра диска
+    decay: 3,                      // затухание инерции, 1/с: скорость × e^(−decay·t) (как в образце particle-globe)
+    maxDegPerSec: 360,             // предел скорости докрутки, °/с (образец: 6 рад/с)
+    latRange: [-30, 30],           // наклон по широте относительно итогового ракурса, ° (шар не переворачивается)
+    resumeDelayMs: 600,            // пауза после остановки, затем фоновое вращение подхватывается с нуля
+    resumeRampMs: 900,             // разгон фонового вращения 0 → 2.5°/с (smoothstep)
+    stopBelowDegPerSec: 1.5,       // докрутка считается законченной ниже этой скорости
   },
   final: {                         // правка 9: итог подгонки автора (экран 430×892, Hf 564), пересчёт по относительным величинам
     on: true,                      // false — вернуть автоматический подбор ракурса (fit)
@@ -369,6 +381,27 @@ const bC = document.getElementById('btnContinue');
 const bS = document.getElementById('btnSkip');
 
 let L = {};
+// правка 10: состояние жеста по планете (только после вступления)
+const INT = { taken: false, dragging: false, lon: 0, lat: 0, vLon: 0, vLat: 0, idleDeg: 0, idleK: 1, still: 0, last: null };
+function idleDegAt(t) {
+  const g = SETTINGS.globe, rd = (T.idleRamp[1] - T.idleRamp[0]) / 1000, u = clamp01((t - T.idleRamp[0]) / (T.idleRamp[1] - T.idleRamp[0]));
+  return g.idleDegPerSec * (t <= T.idleRamp[0] ? 0 : t < T.idleRamp[1] ? rd * (u * u * u - u * u * u * u / 2) : rd / 2 + (t - T.idleRamp[1]) / 1000);
+}
+// шаг физики жеста: инерция с экспоненциальным затуханием, затем фоновое вращение подхватывается с нуля
+function stepInteract(dt) {
+  if (!INT.taken) return;
+  const s = SETTINGS.interact;
+  if (!INT.dragging) {
+    INT.lon += INT.vLon * dt; INT.lat += INT.vLat * dt;
+    if (INT.lat < s.latRange[0]) { INT.lat = s.latRange[0]; INT.vLat = 0; }
+    if (INT.lat > s.latRange[1]) { INT.lat = s.latRange[1]; INT.vLat = 0; }
+    const k = Math.exp(-s.decay * dt); INT.vLon *= k; INT.vLat *= k;
+    const moving = Math.hypot(INT.vLon, INT.vLat) > s.stopBelowDegPerSec;
+    INT.still = moving ? 0 : INT.still + dt * 1000;
+  } else INT.still = 0;
+  INT.idleK = INT.dragging ? 0 : smooth((INT.still - s.resumeDelayMs) / s.resumeRampMs);
+  if (!REDUCED) INT.idleDeg += SETTINGS.globe.idleDegPerSec * INT.idleK * dt;
+}
 const PLN = {};
 const LBL = {}; // рамки подписей последнего кадра (для покадровой проверки)
 // векторные буквы подписей
@@ -539,12 +572,13 @@ function camera(t) {
   const cx = lerp(W / 2, L.cxf, pO); // без подгонки L.cxf = W / 2
   const roll = lerp(g.axisTiltInMorph, TUNE.on && TUNE.tilt != null ? TUNE.tilt : g.axisTiltDeg, pO);
   const cy = lerp(L.lcy, L.cyf, pO);
-  const lat0 = lerp(L.focus[0], L.view[0], pO);
+  const lat0 = lerp(L.focus[0], L.view[0], pO) + INT.lat;
   const es = E.spin(prog(t, T.spin));
   // фоновое вращение после поворота: скорость растёт smoothstep'ом от 0, угол — её точный интеграл
   const rd = (T.idleRamp[1] - T.idleRamp[0]) / 1000, u = clamp01((t - T.idleRamp[0]) / (T.idleRamp[1] - T.idleRamp[0]));
   const idleDeg = g.idleDegPerSec * (t <= T.idleRamp[0] ? 0 : t < T.idleRamp[1] ? rd * (u * u * u - u * u * u * u / 2) : rd / 2 + (t - T.idleRamp[1]) / 1000);
-  const lon0 = L.view[1] - idleDeg + (L.focus[1] - L.view[1]) * (1 - es);
+  // после первого касания фоновое вращение копится в INT.idleDeg (его можно остановить и плавно возобновить)
+  const lon0 = L.view[1] - (INT.taken ? INT.idleDeg : idleDeg) + (L.focus[1] - L.view[1]) * (1 - es) + INT.lon;
   return { R, cx, cy, lat0, lon0, roll };
 }
 
@@ -826,8 +860,25 @@ function render(t) {
 let start = 0, raf = 0;
 function play() {
   cancelAnimationFrame(raf); start = performance.now();
-  const loop = (now) => { render(now - start); raf = requestAnimationFrame(loop); };
+  Object.assign(INT, { taken: false, dragging: false, lon: 0, lat: 0, vLon: 0, vLat: 0, idleDeg: 0, idleK: 1, still: 0, last: null });
+  let prev = 0;
+  const loop = (now) => {
+    const dt = prev ? Math.min(0.05, (now - prev) / 1000) : 0; prev = now;
+    stepInteract(dt); render(now - start); raf = requestAnimationFrame(loop);
+  };
   raf = requestAnimationFrame(loop);
+}
+// без анимации (reduced-motion): финальный кадр, а жест по планете крутит шар без фонового вращения
+let rmRaf = 0;
+function reducedLoop() {
+  if (rmRaf) return; let prev = 0;
+  const loop = (now) => {
+    const dt = prev ? Math.min(0.05, (now - prev) / 1000) : 0; prev = now;
+    stepInteract(dt); render(T.end);
+    const busy = INT.dragging || Math.hypot(INT.vLon, INT.vLat) > 0.05;
+    rmRaf = busy ? requestAnimationFrame(loop) : 0;
+  };
+  rmRaf = requestAnimationFrame(loop);
 }
 window.intro = {
   settings: SETTINGS,
@@ -837,6 +888,7 @@ window.intro = {
   renderFrame(i) { render(i * 1000 / SETTINGS.fps); },
   renderAt(ms) { render(ms); },
   cameraAt(ms) { return camera(ms); },
+  interactState() { return { ...INT, last: null }; },
   planes() { return JSON.parse(JSON.stringify(PLN)); },
   labelBoxes() { return JSON.parse(JSON.stringify(LBL)); },
   // для проверки: точки вдоль линии пульса в экранных координатах (s — доля длины) и центры точек логотипа
@@ -868,6 +920,41 @@ const replay = document.getElementById('replay');
 if (RECORD || FIXED_T != null) replay.hidden = true;
 replay.addEventListener('click', () => { if (REDUCED) { render(T.end); return; } play(); });
 
+// ---- правка 10: жест по планете ----
+// Зона — только диск планеты выше блока текста (текст и кнопки — DOM поверх и касания не отдают). Жест работает
+// только после вступления, не в режимах записи/стоп-кадра и не во время подгонки (#tune).
+const introDone = () => REDUCED || (window.__lastT ?? 0) >= T.end;
+function onPlanet(x, y) {
+  const cam = camera(REDUCED ? T.end : window.__lastT ?? T.end);
+  return y < L.textTop && Math.hypot(x - cam.cx, y - cam.cy) <= cam.R * 1.02;
+}
+canvas.addEventListener('pointerdown', e => {
+  if (RECORD || FIXED_T != null || (typeof tuneActive !== 'undefined' && tuneActive)) return;
+  if (!introDone() || !onPlanet(e.clientX, e.clientY)) return;
+  if (!INT.taken) { INT.idleDeg = REDUCED ? 0 : idleDegAt(window.__lastT ?? T.end); INT.taken = true; }
+  INT.dragging = true; INT.vLon = INT.vLat = 0; INT.last = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+  canvas.setPointerCapture(e.pointerId); if (REDUCED) reducedLoop();
+});
+canvas.addEventListener('pointermove', e => {
+  if (!INT.dragging || !INT.last) return;
+  const s = SETTINGS.interact, cam = camera(REDUCED ? T.end : window.__lastT ?? T.end);
+  const k = s.sensitivity / (cam.R * Math.sqrt((SETTINGS.globe.dist + 1) / (SETTINGS.globe.dist - 1))) / RAD; // ° на px у центра диска
+  const dx = e.clientX - INT.last.x, dy = e.clientY - INT.last.y, dt = Math.max(0.008, (e.timeStamp - INT.last.t) / 1000);
+  const dLon = -dx * k, dLat = dy * k;
+  INT.lon += dLon; INT.lat = Math.max(s.latRange[0], Math.min(s.latRange[1], INT.lat + dLat));
+  // скорость — сглаженная по последним движениям (для инерции), с пределом
+  const cl = v => Math.max(-s.maxDegPerSec, Math.min(s.maxDegPerSec, v));
+  INT.vLon = cl(lerp(INT.vLon, dLon / dt, 0.6)); INT.vLat = cl(lerp(INT.vLat, dLat / dt, 0.6));
+  INT.last = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+});
+const release = e => {
+  if (!INT.dragging) return; INT.dragging = false;
+  // палец постоял перед отпусканием — без инерции
+  if (INT.last && e && e.timeStamp - INT.last.t > 80) INT.vLon = INT.vLat = 0;
+  INT.last = null; if (REDUCED) reducedLoop();
+};
+canvas.addEventListener('pointerup', release); canvas.addEventListener('pointercancel', release);
+
 // ---- панель подгонки шара ----
 const tuneBtn = document.getElementById('tuneBtn'), tunePanel = document.getElementById('tune');
 if (RECORD || FIXED_T != null) tuneBtn.hidden = true;
@@ -885,7 +972,12 @@ const fields = [ // [ползунок, вывод, чтение, запись]
   ['tStep', 'oStep', () => SETTINGS.globe.dotStepDeg, v => { SETTINGS.globe.dotStepDeg = v; buildDots(); resize(); }],
   // размер: радиус точки на переднем крае; ниже minDotRadius точка не мельчает, а гаснет (против муара)
   ['tDot', 'oDot', () => SETTINGS.globe.dotRadius, v => { SETTINGS.globe.dotRadius = v; }],
+  // жест по планете (правка 10): проверяются после «Закрыть»/«Играть» — во время подгонки шар тянет панель
+  ['tDecay', 'oDecay', () => SETTINGS.interact.decay, v => { SETTINGS.interact.decay = v; }],
+  ['tSens', 'oSens', () => SETTINGS.interact.sensitivity, v => { SETTINGS.interact.sensitivity = v; }],
+  ['tResume', 'oResume', () => SETTINGS.interact.resumeDelayMs, v => { SETTINGS.interact.resumeDelayMs = v; }],
 ];
+const INT_DEFAULTS = { ...SETTINGS.interact };
 const DOT_DEFAULTS = { step: SETTINGS.globe.dotStepDeg, r: SETTINGS.globe.dotRadius };
 const fmt = v => (Math.abs(v) < 10 ? Math.round(v * 100) / 100 : Math.round(v * 10) / 10).toString();
 function tuneSync() {
@@ -902,6 +994,7 @@ function tuneReset() {
   const g0 = SETTINGS.globe;
   if (g0.dotStepDeg !== DOT_DEFAULTS.step) { g0.dotStepDeg = DOT_DEFAULTS.step; buildDots(); }
   g0.dotRadius = DOT_DEFAULTS.r;
+  Object.assign(SETTINGS.interact, INT_DEFAULTS);
   TUNE.R = null; resize(); // авто-подгонка
   Object.assign(TUNE, { R: L.auto.R, cx: L.auto.cx, cy: L.auto.cy, lat: L.auto.lat, lon: L.auto.lon, tilt: SETTINGS.globe.axisTiltDeg, mark: [0, 0] });
   tuneApply();
@@ -925,6 +1018,11 @@ function tuneBlock() {
     `  dotStepDeg: ${r1(g.dotStepDeg * 10) / 10},                 // шаг сетки точек, ° (плотность)`,
     `  dotRadius: ${Math.round(g.dotRadius * 100) / 100},                  // радиус точки на переднем крае, px`,
     `  minDotRadius: ${g.minDotRadius},              // мельче не рисуется, вместо этого гаснет`,
+    `},`,
+    `interact: {`,
+    `  decay: ${SETTINGS.interact.decay},                       // затухание инерции, 1/с`,
+    `  sensitivity: ${SETTINGS.interact.sensitivity},                 // чувствительность перетаскивания`,
+    `  resumeDelayMs: ${SETTINGS.interact.resumeDelayMs},              // пауза до возобновления фонового вращения, мс`,
     `},`,
   ].join('\n');
 }
