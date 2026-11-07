@@ -14,9 +14,7 @@ html, body { height: 100%; background: var(--bg); overflow: hidden; }
 body { font-family: "Golos UI", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
 #stage { position: fixed; inset: 0; }
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.labels { position: absolute; inset: 0; pointer-events: none; }
-.label { position: absolute; left: 0; top: 0; font-family: "Nothing Font", monospace; font-size: 20px; line-height: 24px; padding: 0 4px; border-radius: 6px; background: rgba(10,12,15,.72); color: #fff; opacity: 0; white-space: nowrap; will-change: transform, opacity; }
-.text { position: absolute; left: 20px; right: 20px; top: 0; text-align: center; pointer-events: none; }
+.text { text-align: center; margin-bottom: 24px; pointer-events: none; }
 .title { font-family: "Martian Grotesk", sans-serif; font-weight: 500; font-size: 32px; line-height: 40px; opacity: 0; will-change: transform, opacity; }
 .subtitle { margin-top: 8px; font-size: 16px; line-height: 22px; font-weight: 400; color: rgba(255,255,255,.5); opacity: 0; will-change: transform, opacity; }
 .ui { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px calc(20px + var(--safe-bottom)); pointer-events: none; }
@@ -31,13 +29,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 <body>
 <div id="stage">
   <canvas id="c"></canvas>
-  <div class="labels" id="labels"></div>
-  <div class="text" id="text">
-    <h1 class="title" id="title">Добро пожаловать</h1>
-    <!-- временный текст: настоящий подзаголовок напишет автор -->
-    <p class="subtitle" id="subtitle">Lorem ipsum dolor sit amet, consectetur<br>adipiscing elit, sed do eiusmod tempor.</p>
-  </div>
   <div class="ui" id="ui">
+    <div class="text" id="text">
+      <h1 class="title" id="title">Добро пожаловать</h1>
+      <!-- временный текст: настоящий подзаголовок напишет автор -->
+      <p class="subtitle" id="subtitle">Lorem ipsum dolor sit amet, consectetur<br>adipiscing elit, sed do eiusmod tempor.</p>
+    </div>
     <div class="buttons">
       <button class="btn btn--primary" id="btnContinue" type="button">Продолжить</button>
       <button class="btn btn--secondary" id="btnSkip" type="button">Пропустить</button>
@@ -55,24 +52,23 @@ const SETTINGS = {
   timeline: {
     black:        [0, 100],        // чёрный кадр
     logoIn:       [100, 350],      // логотип проявляется
-    pulseErase:   [300, 800],      // один удар: линия стирается слева направо...
-    pulseDraw:    [500, 1000],     // ...а новая рисуется следом, внахлёст (волна, без пустого кадра)
-    lineFade:     [900, 1200],     // линия растворяется, пока точки уходят в планету
-    morph:        [900, 2000],     // точки встраиваются в планету (камера близко)
-    pullOut:      [1700, 2550],    // камера отдаляется, перекрывая хвост встраивания
-    spin:         [1900, 3000],    // вращение на хвосте встраивания, переходит в фоновое
+    pulse:        [300, 1150],     // один удар: волна-разрыв один раз проходит по линии слева направо
+    lineFade:     [1100, 1350],    // линия растворяется, пока точки уходят в планету
+    morph:        [1050, 2100],    // точки встраиваются в планету (камера близко)
+    pullOut:      [1850, 2650],    // камера отдаляется, перекрывая хвост встраивания
+    spin:         [2000, 3000],    // вращение на хвосте встраивания, переходит в фоновое
     title:        [2150, 2450],    // «Добро пожаловать»
     subtitle:     [2200, 2500],    // подзаголовок
     btnContinue:  [2250, 2550],    // «Продолжить»
     btnSkip:      [2290, 2590],    // «Пропустить»
     uiLive:       2150,            // с этого момента кнопки нажимаются
-    redDot:       [2450, 2700],    // красная точка RU
-    arcs:         [2550, 3000],    // дуги растут из красной точки (весь интервал, с разбегом)
+    redDot:       [2350, 2600],    // красная точка RU
+    arcs:         [2450, 3000],    // дуги с самолётиками растут из красной точки (весь интервал, с разбегом)
     end:          3000,
   },
   ease: {
     logoIn:  [0.25, 0, 0.1, 1],    // мягкий вход, длинное торможение
-    pulse:   [0.45, 0, 0.55, 1],   // мягкий in-out по длине линии, без резких фронтов
+    pulse:   [0.45, 0, 0.55, 1],   // ход волны по длине линии: мягкий вход и выход
     lineFade:[0.4, 0, 0.6, 1],
     morph:   [0.5, 0, 0.25, 1],    // полёт одной точки: мягкий отрыв, долгая плавная посадка
     reveal:  [0.45, 0, 0.3, 1],    // проявление точек планеты вокруг логотипа
@@ -88,6 +84,9 @@ const SETTINGS = {
     scaleFrom: 0.96,               // появление: масштаб 0.96 → 1
     staggerMs: 80,                 // разбег появления точек от центра к краю
   },
+  pulse: {
+    gap: 0.22,                     // длина разрыва в середине хода, доля длины линии
+  },
   morph: {
     staggerMs: 200,                // разбег стартов точек логотипа (от центра к краю)
     curl: 0.22,                    // изгиб траектории: доля длины пути вбок (0 = прямая)
@@ -97,13 +96,15 @@ const SETTINGS = {
     dotRadius: 1.0,                // радиус точки на переднем крае при финальном размере, CSS px
     minDotRadius: 0.75,            // CSS px: мельче не рисуем, вместо этого падает яркость
     landAlpha: 0.62,               // яркость суши в центре диска
+    minLandNeighbors: 4,           // точка — суша, если в окрестности 3×3° суши ≥ 4 клеток (без одиночных островков)
     oceanAlpha: 0.05,              // яркость точек океана
     limbFade: 0.6,                 // затухание к краю: глубина z, на которой яркость доходит до полной
     dotZoomExp: 0.5,               // насколько точки растут с приближением камеры (1 = как геометрия)
     dist: 3.4,                     // перспектива (как в образце particle-globe)
-    radiusOfWidth: 0.433,          // финальный радиус силуэта / ширина экрана (ref5)
-    centerXOfWidth: 0.49,          // финальный центр по X / ширина (ref5)
-    centerYOfWidth: 0.512,         // финальный центр по Y от верха кадра / ширина (ref5)
+    // размер и место шара считаются от свободной высоты над блоком текста (Hf), пропорции ref5:
+    radiusOfFree: 0.554,           // радиус = 0.554 · Hf
+    centerOfFree: 0.655,           // центр по Y = верх + 0.655 · Hf (верх заголовка = центр + 0.62 R)
+    labelMargin: 8,                // px от края экрана до подписи: шар можно обрезать, метки — нет
     topInset: 40,                  // px сверху под системную шапку Telegram
     closeFocus: [60, 105],         // [широта, долгота] точки, в которую встраивается логотип
     finalView: [28, 72],           // [широта, долгота] центра вида после отъезда (ref5)
@@ -115,21 +116,25 @@ const SETTINGS = {
     toBelowTitle: 0.05,            // полная непрозрачность: доля ширины ниже верха заголовка
     maxAlpha: 0.94,
   },
-  text: { overlapOfWidth: 0.27 },  // верх заголовка = центр шара + 0.27 ширины (ref5)
   arcs: {
     color: 'rgba(255,255,255,0.75)',
     width: 1.25,                   // CSS px
-    eachMs: 380,                   // рост одной дуги
+    eachMs: 480,                   // рост одной дуги (полёт самолётика)
     staggerMs: 24,
+    planeSize: 11,                 // px, длина самолётика
+    planeFadeMs: 140,              // самолётик гаснет на подлёте к цели
     lift: [0.03, 0.12],            // подъём над поверхностью: a + угол·b (образец)
   },
   redDot: { color: '#C6354B', radius: 4, halo: 14 },
+  label: { font: '20px "Nothing Font"', height: 24, padX: 4, radius: 6, gap: 8, bg: 'rgba(10,12,15,0.72)' },
+  depthFade: [0.02, 0.22],         // точки, подписи и дуги гаснут, уходя за горизонт: z от 0.22 до 0.02
+  // реальные места: столицы (проверено по маске суши, все на суше)
   places: {
-    RU: { lat: 55.75, lon: 37.62, label: 'RU', at: 'below' },
-    DE: { lat: 52.52, lon: 13.40, label: 'DE', at: 'left' },
-    LT: { lat: 54.69, lon: 25.28, label: 'LT', at: 'above' },
-    KZ: { lat: 51.17, lon: 71.43, label: 'KZ', at: 'right' },
-    JP: { lat: 35.68, lon: 139.69, label: 'JP', at: 'right' },
+    RU: { lat: 55.7558, lon: 37.6173, label: 'RU', at: 'below', name: 'Москва' },
+    DE: { lat: 52.5200, lon: 13.4050, label: 'DE', at: 'left',  name: 'Берлин' },
+    LT: { lat: 54.6872, lon: 25.2797, label: 'LT', at: 'above', name: 'Вильнюс' },
+    KZ: { lat: 51.1694, lon: 71.4491, label: 'KZ', at: 'right', name: 'Астана' },
+    JP: { lat: 35.6762, lon: 139.6503, label: 'JP', at: 'right', name: 'Токио' },
   },
   arcOrder: ['LT', 'DE', 'KZ', 'JP'],
 };
@@ -199,8 +204,28 @@ for (let lat = -84 + step / 2; lat < 86; lat += step) {
   const n = Math.max(1, Math.round(360 * Math.cos(lat * RAD) / step));
   for (let j = 0; j < n; j++) {
     const lon = -180 + (j + 0.5) * 360 / n;
-    dots.push({ lat, lon, cl: Math.cos(lat * RAD), sl: Math.sin(lat * RAD), land: lat > -60 && isLand(lat, lon) });
+    let nb = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) nb += isLand(lat + dy, lon + dx);
+    dots.push({ lat, lon, cl: Math.cos(lat * RAD), sl: Math.sin(lat * RAD), land: lat > -60 && nb >= SETTINGS.globe.minLandNeighbors });
   }
+}
+// одиночные точки суши (островки, где сетка задела одну клетку) становятся океаном: без случайных ярких точек
+{
+  const rows = new Map();
+  dots.forEach((d, i) => { if (!d.land) return; const k = Math.round(d.lat / step); (rows.get(k) || rows.set(k, []).get(k)).push(i); });
+  const lim = Math.cos(step * 1.6 * RAD);
+  const v = d => [d.cl * Math.cos(d.lon * RAD), d.cl * Math.sin(d.lon * RAD), d.sl];
+  const lone = [];
+  dots.forEach((d, i) => {
+    if (!d.land) return;
+    const k = Math.round(d.lat / step), a = v(d);
+    for (const kk of [k - 1, k, k + 1]) for (const j of rows.get(kk) || []) {
+      if (j === i) continue; const b = v(dots[j]);
+      if (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] > lim) return;
+    }
+    lone.push(i);
+  });
+  lone.forEach(i => { dots[i].land = false; });
 }
 const N = dots.length;
 
@@ -249,14 +274,30 @@ function layout() {
   const logoSize = Math.min(W * SETTINGS.logo.sizeOfWidth, SETTINGS.logo.maxSize);
   const ls = logoSize / 720;
   const lcx = W / 2, lcy = H / 2;
-  const Rf = W * g.radiusOfWidth, cxf = W * g.centerXOfWidth, cyf = g.topInset + W * g.centerYOfWidth;
   const D = g.dist, frontK = Math.sqrt((D + 1) / (D - 1));
   const Rc = (72 * ls) / (step * RAD * frontK); // шаг точек в фокусе = шаг сетки логотипа
-  // текст: верх заголовка перекрывает низ шара (ref5), но не наезжает на кнопки
-  const btnTop = ui.getBoundingClientRect().top;
-  const textH = textEl.offsetHeight;
-  const textTop = Math.min(cyf + W * SETTINGS.text.overlapOfWidth, btnTop - textH - 24);
-  textEl.style.top = textTop + 'px';
+  // блок текста и кнопок неразделим и стоит внизу; шар занимает свободную высоту над ним
+  const textTop = ui.offsetTop + textEl.offsetTop;
+  const Hf = Math.max(120, textTop - g.topInset);
+  // горизонтальные границы меток в финальном виде при R = 1 (с подписями)
+  ctx.font = SETTINGS.label.font;
+  const P1 = project(g.finalView[0], g.finalView[1], 1, 0, 0);
+  let uMin = 1e9, uMax = -1e9, padL = 0, padR = 0;
+  for (const k in SETTINGS.places) {
+    const p = SETTINGS.places[k]; const [u] = P1(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const lw = ctx.measureText(p.label).width + 2 * SETTINGS.label.padX + SETTINGS.label.gap;
+    const left = p.at === 'left' ? lw : 4, right = p.at === 'right' ? lw : 4;
+    if (u < uMin || (u === uMin)) { uMin = u; padL = left; }
+    if (u > uMax) { uMax = u; padR = right; }
+  }
+  const Rfit = g.radiusOfFree * Hf;
+  const Rspan = (W - 2 * g.labelMargin - padL - padR) / (uMax - uMin);
+  const Rf = Math.min(Rfit, Rspan);
+  // по X: метки по центру экрана; по Y: если шар ужат по ширине, он делит разницу пополам
+  const cxf = g.labelMargin + padL - uMin * Rf + ((W - 2 * g.labelMargin - padL - padR) - (uMax - uMin) * Rf) / 2;
+  const overlap = (1 - g.centerOfFree) / g.radiusOfFree; // верх заголовка = центр + overlap·R
+  const topGap = g.centerOfFree - g.radiusOfFree;        // зазор над шаром, доля Hf
+  const cyf = lerp(textTop - overlap * Rf, g.topInset + topGap * Hf + Rf, 0.5);
   L = { ls, lcx, lcy, Rf, cxf, cyf, Rc, logoSize, textTop };
 
   L.logoDots = [];
@@ -279,7 +320,10 @@ function layout() {
   L.logoDots.sort((a, b) => a.d - b.d).forEach(ld => {
     let best = null, bd = 1e9;
     for (const n of near) { if (used.has(n.i)) continue; const dd = (n.x - ld.x) ** 2 + (n.y - ld.y) ** 2; if (dd < bd) { bd = dd; best = n; } }
-    if (best) { used.add(best.i); ld.target = best.i; }
+    if (best) { used.add(best.i); ld.target = best.i; return; }
+    // свободных целей нет: летим к ближайшей занятой и сливаемся с ней (без одиночных точек)
+    for (const n of near) { const dd = (n.x - ld.x) ** 2 + (n.y - ld.y) ** 2; if (dd < bd) { bd = dd; best = n; } }
+    if (best) ld.target = best.i;
   });
   L.taken = used; L.reveal = reveal;
 
@@ -375,9 +419,8 @@ function dotBatch() {
   };
 }
 
-const labelsEl = document.getElementById('labels');
-const labelEls = {};
-for (const k in SETTINGS.places) { const el = document.createElement('div'); el.className = 'label'; el.textContent = SETTINGS.places[k].label; labelsEl.appendChild(el); labelEls[k] = el; }
+// самолётик (24×24, нос вдоль +x)
+const PLANE = new Path2D('M12 0 L5 -2 L-2 -10 L-5 -10 L-1 -2 L-7 -2 L-10 -6 L-12 -6 L-10 0 L-12 6 L-10 6 L-7 2 L-1 2 L-5 10 L-2 10 L5 2 Z');
 function fadeUp(el, p, dy) { const e = E.ui(p); el.style.opacity = e.toFixed(3); el.style.transform = p >= 1 ? '' : `translateY(${(dy * (1 - e)).toFixed(2)}px)`; }
 
 function render(t) {
@@ -444,13 +487,18 @@ function render(t) {
     }
     batch.fill();
 
-    // один удар: старая линия видна на [e, 1], новая — на [0, d]; d догоняет e внахлёст
-    const e = t < T.pulseErase[0] ? 0 : E.pulse(prog(t, T.pulseErase));
-    const d = E.pulse(prog(t, T.pulseDraw));
+    // один удар: разрыв длиной gap один раз проходит по линии слева направо; линия целиком не исчезает.
+    // Длина разрыва растёт и спадает по синусу, поэтому волна мягко появляется и мягко уходит.
     const la = pIn * (1 - E.lineFade(prog(t, T.lineFade)));
-    if (t < T.pulseErase[0]) drawLine(0, 1, la, sc);
-    else if (d >= e) drawLine(0, 1, la, sc);
-    else { drawLine(e, 1, la, sc); drawLine(0, d, la, sc); }
+    const pp = prog(t, T.pulse);
+    if (pp <= 0 || pp >= 1) drawLine(0, 1, la, sc);
+    else {
+      const c = E.pulse(pp) * (1 + SETTINGS.pulse.gap) - SETTINGS.pulse.gap / 2; // центр разрыва
+      const half = SETTINGS.pulse.gap / 2 * Math.sin(Math.PI * pp);
+      const g0 = Math.max(0, c - half), g1 = Math.min(1, c + half);
+      if (g0 > 0) drawLine(0, g0, la, sc);
+      if (g1 < 1) drawLine(g1, 1, la, sc);
+    }
   }
 
   // ---- затемнение низа планеты под текст ----
@@ -480,54 +528,83 @@ function render(t) {
     const y2 = y * cp - z * sp, z2 = y * sp + z * cp; const k = f / (D - z2);
     return [cam.cx + x * k, cam.cy - y2 * k, z2];
   };
+  const [fz0, fz1] = SETTINGS.depthFade;
+  const vis = z => smooth((z - fz0) / (fz1 - fz0));
   const arrived = {};
+  const planes = [];
   if (t >= T.arcs[0]) {
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = SETTINGS.arcs.width * dpr;
     for (const arc of L.arcs) {
       const t0 = T.arcs[0] + arc.idx * SETTINGS.arcs.staggerMs, t1 = Math.min(T.arcs[1], t0 + SETTINGS.arcs.eachMs);
       const p = E.arc(prog(t, [t0, t1]));
       arrived[arc.key] = prog(t, [t1 - 80, t1 + 70]);
       if (p <= 0) continue;
       const n = arc.pts.length - 1, head = p * n;
-      ctx.beginPath();
+      const scr = [];
       for (let s = 0; s <= Math.ceil(head); s++) {
         let q = arc.pts[Math.min(s, n)];
         if (s > head) { const a0 = arc.pts[s - 1]; const k = head - (s - 1); q = [lerp(a0[0], q[0], k), lerp(a0[1], q[1], k), lerp(a0[2], q[2], k)]; }
-        const [x, y] = proj3(q);
-        if (s === 0) ctx.moveTo(x * dpr, y * dpr); else ctx.lineTo(x * dpr, y * dpr);
+        scr.push(proj3(q));
       }
-      ctx.strokeStyle = SETTINGS.arcs.color; ctx.lineWidth = SETTINGS.arcs.width * dpr; ctx.stroke();
+      // дуга по сегментам: за горизонтом гаснет
+      for (let s = 1; s < scr.length; s++) {
+        const v = vis(Math.max(scr[s - 1][2], scr[s][2]) + 0.15); if (v <= 0) continue;
+        ctx.strokeStyle = `rgba(255,255,255,${0.75 * v})`;
+        ctx.beginPath(); ctx.moveTo(scr[s - 1][0] * dpr, scr[s - 1][1] * dpr); ctx.lineTo(scr[s][0] * dpr, scr[s][1] * dpr); ctx.stroke();
+      }
+      // самолётик на конце растущей дуги, нос по касательной
+      const fade = 1 - prog(t, [t1 - SETTINGS.arcs.planeFadeMs, t1 + 40]); // гаснет на подлёте, точка цели проявляется навстречу
+      if (fade > 0 && scr.length > 1) {
+        const hd = scr[scr.length - 1], bk = scr[Math.max(0, scr.length - 3)];
+        planes.push({ x: hd[0], y: hd[1], ang: Math.atan2(hd[1] - bk[1], hd[0] - bk[0]), a: fade * vis(hd[2] + 0.15) });
+      }
     }
   }
+  // точки-цели
   for (const key of SETTINGS.arcOrder) {
-    const k = arrived[key] || 0; if (k <= 0) continue;
-    const p = pl[key]; const [x, y] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
-    const r = 3.2 * (0.6 + 0.4 * E.ui(k));
+    const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const k = (arrived[key] || 0) * vis(z); if (k <= 0) continue;
+    const r = 3.2 * (0.6 + 0.4 * E.ui(arrived[key]));
     const gr = ctx.createRadialGradient(x * dpr, y * dpr, 0, x * dpr, y * dpr, 10 * dpr);
     gr.addColorStop(0, `rgba(255,255,255,${0.35 * k})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x * dpr, y * dpr, 10 * dpr, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = `rgba(255,255,255,${k})`; ctx.beginPath(); ctx.arc(x * dpr, y * dpr, r * dpr, 0, Math.PI * 2); ctx.fill();
   }
+  // красная точка RU
   if (pR > 0) {
-    const [x, y] = ruP; const rd = SETTINGS.redDot;
+    const [x, y, z] = ruP; const rd = SETTINGS.redDot; const v = vis(z);
     const pulse = t > T.redDot[1] ? 0.5 + 0.5 * Math.sin((t - T.redDot[1]) / 1000 * 2.2 - Math.PI / 2) : 0;
     const halo = Math.max(0, rd.halo * (0.85 + 0.3 * pulse) * pR);
     const gr = ctx.createRadialGradient(x * dpr, y * dpr, 0, x * dpr, y * dpr, halo * dpr + 0.01);
-    gr.addColorStop(0, `rgba(198,53,75,${0.55 * Math.min(1, pR)})`); gr.addColorStop(1, 'rgba(198,53,75,0)');
+    gr.addColorStop(0, `rgba(198,53,75,${0.55 * Math.min(1, pR) * v})`); gr.addColorStop(1, 'rgba(198,53,75,0)');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x * dpr, y * dpr, halo * dpr, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = rd.color; ctx.beginPath(); ctx.arc(x * dpr, y * dpr, Math.max(0, rd.radius * pR) * dpr, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = v; ctx.fillStyle = rd.color; ctx.beginPath(); ctx.arc(x * dpr, y * dpr, Math.max(0, rd.radius * pR) * dpr, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
   }
+  // самолётики поверх точек
+  const ps = SETTINGS.arcs.planeSize;
+  for (const pl0 of planes) {
+    if (pl0.a <= 0) continue;
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, pl0.x * dpr, pl0.y * dpr); ctx.rotate(pl0.ang); ctx.scale(ps / 24, ps / 24);
+    ctx.globalAlpha = pl0.a; ctx.fillStyle = '#fff';
+    ctx.fill(PLANE);
+    ctx.restore();
+  }
+  // подписи: в canvas, субпиксельные координаты, без округления; гаснут за горизонтом
+  const lb = SETTINGS.label;
+  ctx.font = `${lb.font}`; ctx.textBaseline = 'middle';
   for (const key in pl) {
-    const el = labelEls[key];
-    const k = key === 'RU' ? clamp01(prog(t, T.redDot)) : (arrived[key] || 0);
-    if (k <= 0) { el.style.opacity = '0'; continue; }
-    const p = pl[key]; const [x, y] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
-    const w = el.offsetWidth || 32, h = 24, gap = 8;
+    const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const k0 = key === 'RU' ? clamp01(prog(t, T.redDot)) : (arrived[key] || 0);
+    const k = E.ui(k0) * vis(z); if (k <= 0.002) continue;
+    const tw = ctx.measureText(p.label).width, w = tw + 2 * lb.padX, h = lb.height;
     let lx = x - w / 2, ly = y - h / 2;
-    if (p.at === 'left') lx = x - gap - w; if (p.at === 'right') lx = x + gap;
-    if (p.at === 'above') ly = y - gap - h; if (p.at === 'below') ly = y + gap - 2;
-    el.style.opacity = E.ui(k).toFixed(3);
-    el.style.transform = `translate(${lx.toFixed(1)}px, ${ly.toFixed(1)}px)`;
+    if (p.at === 'left') lx = x - lb.gap - w; if (p.at === 'right') lx = x + lb.gap;
+    if (p.at === 'above') ly = y - lb.gap - h; if (p.at === 'below') ly = y + lb.gap - 2;
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = k;
+    ctx.fillStyle = lb.bg; ctx.beginPath(); ctx.roundRect(lx, ly, w, h, lb.radius); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(p.label, lx + lb.padX, ly + h / 2 + 1);
+    ctx.restore();
   }
 
   fadeUp(title, prog(t, T.title), 12);
