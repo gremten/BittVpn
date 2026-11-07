@@ -43,6 +43,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .tune button:focus-visible, .tune input:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .tune textarea { width: 100%; min-height: 120px; resize: vertical; border: 0; border-radius: 8px; padding: 8px; background: #0A0C0F; color: rgba(255,255,255,.85); font: 11px/15px ui-monospace, Menlo, monospace; }
 body.tuning canvas { cursor: grab; touch-action: none; }
+.tune { transition: opacity .15s ease; }
+.tune.gesture { opacity: 0; pointer-events: none; } /* автоскрытие на время перетаскивания и колеса */
 </style>
 </head>
 <body>
@@ -65,7 +67,7 @@ body.tuning canvas { cursor: grab; touch-action: none; }
 <button class="replay tune-btn" id="tuneBtn" type="button">Настройка</button>
 <div class="tune" id="tune" hidden>
   <h2>Подгонка шара (финальный кадр)</h2>
-  <div class="hint2">Тяни шар пальцем или мышью над панелью, колесо меняет размер.</div>
+  <div class="hint2">Тяни шар пальцем или мышью, колесо меняет размер; на время жеста панель прячется. «Скрыть» или H сворачивает панель, значения сохраняются.</div>
   <div class="row"><label for="tDx">Сдвиг X, px</label><input type="range" id="tDx" min="-400" max="400" step="1"><output id="oDx"></output></div>
   <div class="row"><label for="tDy">Сдвиг Y, px</label><input type="range" id="tDy" min="-500" max="500" step="1"><output id="oDy"></output></div>
   <div class="row"><label for="tR">Радиус, px</label><input type="range" id="tR" min="40" max="1400" step="1"><output id="oR"></output></div>
@@ -78,6 +80,7 @@ body.tuning canvas { cursor: grab; touch-action: none; }
     <button class="primary" id="tCopy" type="button">Скопировать значения</button>
     <button id="tReset" type="button">Сбросить</button>
     <button id="tPlay" type="button">Играть</button>
+    <button id="tHide" type="button">Скрыть (H)</button>
     <button id="tClose" type="button">Закрыть</button>
   </div>
   <textarea id="tOut" readonly aria-label="Значения для отправки" hidden></textarea>
@@ -853,13 +856,19 @@ function tuneBlock() {
     `markersOffsetPx: [${r1(TUNE.mark[0])}, ${r1(TUNE.mark[1])}],   // общий сдвиг точек и подписей стран`,
   ].join('\n');
 }
+// режим подгонки: tuneActive — шар можно тянуть; панель при этом может быть свёрнута (значения сохраняются)
+let tuneActive = false;
+function tuneShowPanel(show) { tunePanel.hidden = !show; tuneBtn.textContent = show ? 'Настройка' : 'Панель'; }
 function tuneOpen() {
-  TUNE.on = true; tunePanel.hidden = false; document.body.classList.add('tuning');
+  TUNE.on = true; tuneActive = true; document.body.classList.add('tuning'); tuneShowPanel(true);
   if (TUNE.R == null) tuneReset(); else tuneApply();
 }
-function tuneClose() { tunePanel.hidden = true; document.body.classList.remove('tuning'); }
+function tuneClose() { tuneActive = false; tuneShowPanel(false); tuneBtn.textContent = 'Настройка'; document.body.classList.remove('tuning'); }
+function tuneToggleHide() { if (!tuneActive) return; tuneShowPanel(tunePanel.hidden); }
 for (const [sId, , , set] of fields) $(sId).addEventListener('input', e => { set(+e.target.value); tuneApply(); });
-tuneBtn.addEventListener('click', () => (tunePanel.hidden ? tuneOpen() : tuneClose()));
+tuneBtn.addEventListener('click', () => { if (!tuneActive) tuneOpen(); else tuneToggleHide(); });
+$('tHide').addEventListener('click', tuneToggleHide);
+window.addEventListener('keydown', e => { if ((e.key === 'h' || e.key === 'H' || e.key === 'р' || e.key === 'Р') && !e.target.closest?.('textarea')) tuneToggleHide(); });
 $('tClose').addEventListener('click', tuneClose);
 $('tReset').addEventListener('click', tuneReset);
 $('tPlay').addEventListener('click', () => { resize(); play(); });
@@ -871,14 +880,17 @@ $('tCopy').addEventListener('click', () => {
 });
 // перетаскивание шара и колесо — только в режиме подгонки
 let drag = null;
-canvas.addEventListener('pointerdown', e => { if (!TUNE.on || tunePanel.hidden) return; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+let wheelTimer = 0;
+const gesture = on => tunePanel.classList.toggle('gesture', on);
+canvas.addEventListener('pointerdown', e => { if (!tuneActive) return; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); gesture(true); });
 canvas.addEventListener('pointermove', e => {
   if (!drag) return;
   TUNE.cx += e.clientX - drag.x; TUNE.cy += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; tuneApply();
 });
-['pointerup', 'pointercancel'].forEach(n => canvas.addEventListener(n, () => { drag = null; }));
+['pointerup', 'pointercancel'].forEach(n => canvas.addEventListener(n, () => { drag = null; gesture(false); }));
 canvas.addEventListener('wheel', e => {
-  if (!TUNE.on || tunePanel.hidden) return; e.preventDefault();
+  if (!tuneActive) return; e.preventDefault();
+  gesture(true); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => gesture(false), 450);
   TUNE.R = Math.max(40, TUNE.R * Math.exp(-e.deltaY * 0.0015)); tuneApply();
 }, { passive: false });
 if (TUNE_HASH) window.intro.ready.then(() => tuneOpen());
