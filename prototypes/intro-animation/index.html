@@ -61,17 +61,17 @@ const SETTINGS = {
     pulse:        [300, 1150],     // один удар: волна-разрыв один раз проходит по линии слева направо
     lineFade:     [1100, 1350],    // линия растворяется, пока точки уходят в планету
     morph:        [1050, 2150],    // точки встраиваются в планету (камера близко)
-    pullOut:      [1850, 2700],    // камера отдаляется, перекрывая хвост встраивания
-    spin:         [2000, 2700],    // поворот к финальному ракурсу; тормозит до нуля ровно с концом отъезда
-    idleRamp:     [2700, 3400],    // фоновое вращение плавно подхватывается после поворота
-    title:        [2150, 2450],    // «Добро пожаловать»
-    subtitle:     [2200, 2500],    // подзаголовок
-    btnContinue:  [2250, 2550],    // «Продолжить»
-    btnSkip:      [2290, 2590],    // «Пропустить»
-    uiLive:       2150,            // с этого момента кнопки нажимаются
-    redDot:       [2400, 2700],    // красная точка RU
-    arcs:         [2500, 3100],    // дуги с самолётиками растут из красной точки (весь интервал, с разбегом)
-    end:          3100,
+    pullOut:      [1850, 3150],    // камера отдаляется (1.3 с), перекрывая хвост встраивания
+    spin:         [1900, 3150],    // поворот к финальному ракурсу; тормозит до нуля ровно с концом отъезда
+    idleRamp:     [3150, 3900],    // фоновое вращение плавно подхватывается после поворота
+    title:        [2300, 2650],    // «Добро пожаловать»
+    subtitle:     [2350, 2700],    // подзаголовок
+    btnContinue:  [2400, 2750],    // «Продолжить»
+    btnSkip:      [2440, 2790],    // «Пропустить»
+    uiLive:       2300,            // с этого момента кнопки нажимаются
+    redDot:       [2750, 3050],    // красная точка RU
+    arcs:         [2850, 3500],    // дуги с самолётиками растут из красной точки (весь интервал, с разбегом)
+    end:          3500,
   },
   ease: {
     logoIn:  [0.25, 0, 0.1, 1],    // мягкий вход, длинное торможение
@@ -79,7 +79,7 @@ const SETTINGS = {
     lineFade:[0.4, 0, 0.6, 1],
     morph:   [0.5, 0, 0.25, 1],    // полёт одной точки: мягкий отрыв, долгая плавная посадка
     reveal:  [0.45, 0, 0.3, 1],    // проявление точек планеты вокруг логотипа
-    pullOut: [0.6, 0, 0.15, 1],    // камера трогается очень мягко (скорость с нуля), разгоняется, долго тормозит
+    pullOut: [0.45, 0, 0.25, 1],   // отъезд: мягкий старт с нуля, без резкого пика скорости, долгое торможение
     ui:      [0.25, 0, 0.1, 1],    // с нулевой скорости, быстро набирает и долго тормозит
     redDot:  [0.4, 0, 0.2, 1.4],   // с нулевой скорости, небольшой перелёт масштаба в конце
     arc:     [0.5, 0, 0.2, 1],     // дуга: разгон от точки, торможение у цели
@@ -91,8 +91,9 @@ const SETTINGS = {
     staggerMs: 80,                 // разбег появления точек от центра к краю
   },
   spin: {                          // профиль скорости поворота (не bezier: задаётся скоростью)
-    accelShare: 0.08,              // короткий разгон с нуля (8% окна ≈ 56 мс), дальше почти ровная высокая скорость
-    decelPower: 2.4,               // торможение (1−u)^2.4: длинный мягкий выбег, скорость в конце ровно 0
+    accelShare: 0.18,              // разгон с нуля (18% окна ≈ 225 мс), дальше торможение
+    decelPower: 2.0,               // торможение (1−u)^2: длинный мягкий выбег, скорость в конце ровно 0
+    deg: 22,                       // угол поворота к финальному ракурсу, °; пик скорости ≈ 47°/с (предел автора 60°/с)
   },
   pulse: {
     gap: 0.22,                     // длина разрыва в середине хода, доля длины линии
@@ -114,22 +115,25 @@ const SETTINGS = {
     // размер и место шара считаются от свободной высоты над блоком текста (Hf), пропорции ref5:
     radiusOfFree: 0.554,           // радиус = 0.554 · Hf
     centerOfFree: 0.655,           // центр по Y = верх + 0.655 · Hf (верх заголовка = центр + 0.62 R)
-    labelMargin: 8,                // px от края экрана до подписи: шар можно обрезать, метки — нет
+    labelMargin: 4,                // px от края экрана до подложки подписи (текст — ещё +4): шар можно обрезать, метки — нет
     topInset: 40,                  // px сверху под системную шапку Telegram
-    closeFocus: [60, 105],         // [широта, долгота] точки, в которую встраивается логотип
-    finalView: [28, 72],           // [широта, долгота] центра вида по ref5: исходная точка подбора ракурса
+    closeFocus: [60, 105],         // широта точки встраивания логотипа; долгота = финальная + spin.deg
+    axisTiltDeg: 22,               // наклон оси: северный полюс завален вправо вокруг оси взгляда, ° (как у глобуса, мягче 23.4°)
+    axisTiltInMorph: 0,            // наклон в момент встраивания (сетка логотипа ровная); к финалу растёт вместе с отъездом
+    finalView: [46, 56],           // [широта, долгота] предпочтительного центра вида (с наклоном оси 22°; без наклона был 28/72 по ref5)
     idleDegPerSec: 2.5,            // фоновое вращение (ref3: ≈2–3°/с), фигуры едут вправо
     revealSpread: 0.55,            // доля окна morph на разбег проявления точек от центра
     revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
   },
   fit: {                           // подбор финального ракурса под экран (правка 5)
-    lat: [18, 42],                 // перебор наклона (широта центра вида), °: держимся близко к ref5
-    lon: [52, 90],                 // перебор долготы центра вида, °: Евразия сверху, JP не у самого горизонта
-    minZ: 0.3,                     // метки должны быть на передней стороне с запасом (не у самого горизонта)
-    minRadiusShare: 0.6,           // если не влезает, радиус уменьшается, но не ниже 60% от желаемого
-    viewPenaltyPxPerDeg: 1.2,      // цена отхода от ракурса ref5, px радиуса за градус
+    lat: [10, 50],                 // перебор широты центра вида, °
+    lon: [50, 100],                // перебор долготы центра вида, °
+    step: 2,                       // шаг перебора, °
+    minZ: 0.45,                    // метки ближе к центру диска, не у горизонта; если ракурса нет — порог снижается до 0.3, затем 0.15
+    minRadiusShare: 0.45,          // если не влезает, радиус уменьшается, но не ниже 45% от желаемого
+    viewPenaltyPxPerDeg: 3,        // цена отхода от предпочтительного ракурса, px радиуса за градус (одинаковый вид на разных экранах)
     labelOptions: {                // допустимые стороны подписей; первая — как на ref5
-      RU: ['below'], LT: ['above'], DE: ['left', 'above'], KZ: ['right', 'below'], JP: ['right', 'above', 'left'],
+      RU: ['below', 'right'], LT: ['above', 'below'], DE: ['left', 'above', 'below'], KZ: ['right', 'below', 'above'], JP: ['right', 'above', 'left'],
     },
   },
   shade: {                         // затемнение низа планеты под текст
@@ -147,7 +151,8 @@ const SETTINGS = {
     lift: [0.03, 0.12],            // подъём над поверхностью: a + угол·b (образец)
   },
   redDot: { color: '#C6354B', radius: 4, halo: 14 },
-  label: { font: '20px "Nothing Font"', height: 24, padX: 4, radius: 6, gap: 8, bg: 'rgba(10,12,15,0.72)' },
+  label: { size: 20, minSize: 16, refWidth: 390, family: '"Nothing Font"', height: 24, padX: 4, radius: 6, gap: 8, bg: 'rgba(10,12,15,0.72)' },
+                                   // кегль подписи: 20 px при ширине ≥ 390, на узких экранах пропорционально, не меньше 16
   depthFade: [0.02, 0.22],         // точки, подписи и дуги гаснут, уходя за горизонт: z от 0.22 до 0.02
   // реальные места: столицы (проверено по маске суши, все на суше)
   places: {
@@ -272,15 +277,17 @@ function resize() {
   layout();
 }
 
-function project(lat0, lon0, R, cx, cy) {
+function project(lat0, lon0, R, cx, cy, roll = 0) {
   const D = SETTINGS.globe.dist, f = R * Math.sqrt(D * D - 1);
   const cp = Math.cos(lat0 * RAD), sp = Math.sin(lat0 * RAD);
+  const cr = Math.cos(roll * RAD), sr = Math.sin(roll * RAD); // наклон оси: поворот вокруг оси взгляда, полюс вправо
   return (cl, sl, lon) => {
     const dl = (lon - lon0) * RAD;
     const x = cl * Math.sin(dl), y = sl, z = cl * Math.cos(dl);
     const y2 = y * cp - z * sp, z2 = y * sp + z * cp;
     const k = f / (D - z2);
-    return [cx + x * k, cy - y2 * k, z2, (D - 1) / (D - z2)];
+    const xr = x * cr + y2 * sr, yr = -x * sr + y2 * cr;
+    return [cx + xr * k, cy - yr * k, z2, (D - 1) / (D - z2)];
   };
 }
 
@@ -321,7 +328,9 @@ function layout() {
   const Hf = Math.max(120, textTop - g.topInset);
   // ---- подбор финального ракурса: шар заполняет свободную высоту, метки с подписями — в кадре ----
   const fit = SETTINGS.fit, lb = SETTINGS.label;
-  ctx.font = lb.font;
+  const lsz = Math.max(lb.minSize, Math.min(lb.size, lb.size * W / lb.refWidth));
+  const lfont = `${lsz.toFixed(1)}px ${lb.family}`, lh = lb.height * lsz / lb.size;
+  ctx.font = lfont;
   const keys = Object.keys(SETTINGS.places);
   const lw = {}; keys.forEach(k => { lw[k] = ctx.measureText(SETTINGS.places[k].label).width + 2 * lb.padX; });
   const overlap = (1 - g.centerOfFree) / g.radiusOfFree; // верх заголовка = центр + overlap·R
@@ -331,14 +340,15 @@ function layout() {
   const cyOf = Rr => g.topInset + topGap * Hf + Rr;
   const combos = keys.reduce((acc, k) => acc.flatMap(c => fit.labelOptions[k].map(o => ({ ...c, [k]: o }))), [{}]);
   const boxesAt = (pos, Rr, combo) => keys.map(k => {
-    const [u, v] = pos[k], x = u * Rr, y = v * Rr, w = lw[k], h = lb.height;
+    const [u, v] = pos[k], x = u * Rr, y = v * Rr, w = lw[k], h = lh;
     return [labelBox(combo[k], x, y, w, h), [x - 5, y - 5, 10, 10]];
   });
   const check = (pos, Rr, combo) => {
     const bx = boxesAt(pos, Rr, combo), cy = cyOf(Rr);
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
     for (const [lbx, pt] of bx) for (const r of [lbx, pt]) { x0 = Math.min(x0, r[0]); x1 = Math.max(x1, r[0] + r[2]); y0 = Math.min(y0, r[1]); y1 = Math.max(y1, r[1] + r[3]); }
-    if (x1 - x0 > W - 2 * g.labelMargin) return null;
+    // шар строго по центру экрана: метки с подписями должны влезть по обе стороны от центра
+    if (x0 < -W / 2 + g.labelMargin || x1 > W / 2 - g.labelMargin) return null;
     if (cy + y0 < g.topInset || cy + y1 > textTop - 12) return null;
     for (let i = 0; i < bx.length; i++) for (let j = 0; j < bx.length; j++) {
       if (i === j) continue; const a = bx[i][0];
@@ -347,16 +357,23 @@ function layout() {
     return [x0, x1];
   };
   let best = null;
-  for (let lat0 = fit.lat[0]; lat0 <= fit.lat[1]; lat0 += 1) for (let lon0 = fit.lon[0]; lon0 <= fit.lon[1]; lon0 += 1) {
-    const P1 = project(lat0, lon0, 1, 0, 0); const pos = {}; let ok = true;
-    for (const k of keys) { const p = SETTINGS.places[k]; const q = P1(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon); if (q[2] < fit.minZ) { ok = false; break; } pos[k] = q; }
+  for (const minZ of [fit.minZ, 0.3, 0.15]) {
+  if (best) break;
+  for (let lat0 = fit.lat[0]; lat0 <= fit.lat[1]; lat0 += fit.step) for (let lon0 = fit.lon[0]; lon0 <= fit.lon[1]; lon0 += fit.step) {
+    const P1 = project(lat0, lon0, 1, 0, 0, g.axisTiltDeg); const pos = {}; let ok = true;
+    for (const k of keys) { const p = SETTINGS.places[k]; const q = P1(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon); if (q[2] < minZ) { ok = false; break; } pos[k] = q; }
     if (!ok) continue;
     const pen = fit.viewPenaltyPxPerDeg * Math.hypot(lat0 - g.finalView[0], lon0 - g.finalView[1]);
     for (const combo of combos) {
-      let lo = Rfit * fit.minRadiusShare, hi = Rfit, ext = check(pos, hi, combo), Rr = hi;
+      // допустимые радиусы — отрезок посередине (мелкий шар: подписи налезают; крупный: не влезают по ширине):
+      // грубо сверху вниз шагом 6%, затем уточнение между найденным и предыдущим шагом
+      let ext = check(pos, Rfit, combo), Rr = Rfit;
       if (!ext) {
-        if (!check(pos, lo, combo)) continue;
-        for (let it = 0; it < 16; it++) { const m = (lo + hi) / 2; if (check(pos, m, combo)) lo = m; else hi = m; }
+        let found = 0;
+        for (let sh = 0.94; sh >= fit.minRadiusShare - 1e-9; sh -= 0.06) if (check(pos, Rfit * sh, combo)) { found = sh; break; }
+        if (!found) continue;
+        let lo = Rfit * found, hi = Math.min(Rfit, lo + Rfit * 0.06);
+        for (let it = 0; it < 8; it++) { const m = (lo + hi) / 2; if (check(pos, m, combo)) lo = m; else hi = m; }
         Rr = lo; ext = check(pos, Rr, combo);
       }
       const order = keys.reduce((n, k) => n + (combo[k] === fit.labelOptions[k][0] ? 0 : 1), 0);
@@ -364,12 +381,14 @@ function layout() {
       if (!best || score > best.score) best = { score, Rr, lat0, lon0, combo, ext };
     }
   }
+  }
   if (!best) best = { Rr: Rfit * fit.minRadiusShare, lat0: g.finalView[0], lon0: g.finalView[1], combo: Object.fromEntries(keys.map(k => [k, SETTINGS.places[k].at])), ext: [-W / 2, W / 2] };
   const Rf = best.Rr;
   // по X: метки с подписями — по центру экрана (шар может уходить за края)
-  const cxf = W / 2 - (best.ext[0] + best.ext[1]) / 2;
+  const cxf = W / 2;
   const cyf = cyOf(Rf);
-  L = { ls, lcx, lcy, Rf, cxf, cyf, Rc, logoSize, textTop, view: [best.lat0, best.lon0], labelAt: best.combo, Rfit };
+  L = { ls, lcx, lcy, Rf, cxf, cyf, Rc, logoSize, textTop, view: [best.lat0, best.lon0], labelAt: best.combo, Rfit, lfont, lh,
+        focus: [g.closeFocus[0], best.lon0 + SETTINGS.spin.deg] };
 
 
   L.logoDots = [];
@@ -379,7 +398,7 @@ function layout() {
     L.logoDots.push({ x, y, r: cell[0] * ls, a: cell[1], d: Math.hypot(c - 4, r - 4) / 5.7 });
   }));
   // цели на сфере в состоянии «близко»: ближайшая свободная точка суши
-  const P = project(g.closeFocus[0], g.closeFocus[1], Rc, W / 2, lcy);
+  const P = project(L.focus[0], L.focus[1], Rc, W / 2, lcy, g.axisTiltInMorph);
   const near = [];
   const reveal = new Float32Array(N);
   const diag = Math.hypot(W, H) * 0.75;
@@ -421,15 +440,16 @@ function camera(t) {
   const g = SETTINGS.globe;
   const pO = E.pullOut(prog(t, T.pullOut));
   const R = lerp(L.Rc, L.Rf, pO);
-  const cx = lerp(W / 2, L.cxf, pO);
+  const cx = W / 2;
+  const roll = lerp(g.axisTiltInMorph, g.axisTiltDeg, pO);
   const cy = lerp(L.lcy, L.cyf, pO);
-  const lat0 = lerp(g.closeFocus[0], L.view[0], pO);
+  const lat0 = lerp(L.focus[0], L.view[0], pO);
   const es = E.spin(prog(t, T.spin));
   // фоновое вращение после поворота: скорость растёт smoothstep'ом от 0, угол — её точный интеграл
   const rd = (T.idleRamp[1] - T.idleRamp[0]) / 1000, u = clamp01((t - T.idleRamp[0]) / (T.idleRamp[1] - T.idleRamp[0]));
   const idleDeg = g.idleDegPerSec * (t <= T.idleRamp[0] ? 0 : t < T.idleRamp[1] ? rd * (u * u * u - u * u * u * u / 2) : rd / 2 + (t - T.idleRamp[1]) / 1000);
-  const lon0 = L.view[1] - idleDeg + (g.closeFocus[1] - L.view[1]) * (1 - es);
-  return { R, cx, cy, lat0, lon0 };
+  const lon0 = L.view[1] - idleDeg + (L.focus[1] - L.view[1]) * (1 - es);
+  return { R, cx, cy, lat0, lon0, roll };
 }
 
 // линия пульса
@@ -503,7 +523,7 @@ function render(t) {
   const mRaw = prog(t, T.morph);
   const inMorph = t >= T.morph[0];
   const cam = camera(t);
-  const P = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy);
+  const P = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy, cam.roll);
   const rScale = Math.pow(cam.R / L.Rf, g.dotZoomExp);
   // затемнение низа под текст: множитель яркости точек (не заливка поверх — та даёт мерцание округления)
   const sh = SETTINGS.shade, shK = E.pullOut(prog(t, T.pullOut)) * sh.maxAlpha;
@@ -581,12 +601,14 @@ function render(t) {
   const ruP = P(Math.cos(pl.RU.lat * RAD), Math.sin(pl.RU.lat * RAD), pl.RU.lon);
   const pR = E.redDot(prog(t, T.redDot));
   const cp = Math.cos(cam.lat0 * RAD), sp = Math.sin(cam.lat0 * RAD), D = g.dist, f = cam.R * Math.sqrt(D * D - 1);
+  const crl = Math.cos(cam.roll * RAD), srl = Math.sin(cam.roll * RAD);
   const proj3 = (p) => {
     const lonR = Math.atan2(p[0], p[2]) / RAD;
     const cl = Math.hypot(p[0], p[2]); const dl = (lonR - cam.lon0) * RAD;
     const x = cl * Math.sin(dl), y = p[1], z = cl * Math.cos(dl);
     const y2 = y * cp - z * sp, z2 = y * sp + z * cp; const k = f / (D - z2);
-    return [cam.cx + x * k, cam.cy - y2 * k, z2];
+    const xr = x * crl + y2 * srl, yr = -x * srl + y2 * crl;
+    return [cam.cx + xr * k, cam.cy - yr * k, z2];
   };
   const [fz0, fz1] = SETTINGS.depthFade;
   const vis = z => smooth((z - fz0) / (fz1 - fz0));
@@ -652,12 +674,12 @@ function render(t) {
   }
   // подписи: в canvas, субпиксельные координаты, без округления; гаснут за горизонтом
   const lb = SETTINGS.label;
-  ctx.font = `${lb.font}`; ctx.textBaseline = 'middle';
+  ctx.font = L.lfont; ctx.textBaseline = 'middle';
   for (const key in pl) {
     const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
     const k0 = key === 'RU' ? clamp01(prog(t, T.redDot)) : (arrived[key] || 0);
     const k = E.ui(k0) * vis(z); if (k <= 0.002) continue;
-    const tw = ctx.measureText(p.label).width, w = tw + 2 * lb.padX, h = lb.height;
+    const tw = ctx.measureText(p.label).width, w = tw + 2 * lb.padX, h = L.lh;
     const [lx, ly] = labelBox(L.labelAt[key] || p.at, x, y, w, h);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = k;
     ctx.fillStyle = lb.bg; ctx.beginPath(); ctx.roundRect(lx, ly, w, h, lb.radius); ctx.fill();
