@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AppShell, AppToast } from './components/layout';
 import { Block, Card, Skeleton } from './components/ui';
 import MainScreen from './screens/MainScreen';
+import IntroScreen from './screens/IntroScreen';
 import LocationsScreen, { LOCATIONS_FIGMA_NODES, LOCATIONS_TABS } from './screens/LocationsScreen';
 import CountryScreen, { getCountryScreenFigmaNode } from './screens/CountryScreen';
 import CountrySpecificationsScreen from './screens/CountrySpecificationsScreen';
@@ -21,6 +22,7 @@ import { getTelegramWebApp, isTelegramMiniApp, markTelegramReady } from './teleg
 import { waitForAppFonts } from './utils/appReadiness';
 
 const SCREEN = Object.freeze({
+  INTRO: 'intro',
   MAIN: 'main',
   LOCATIONS: 'locations',
   COUNTRY: 'country',
@@ -174,7 +176,7 @@ export default function App() {
   const [appReady, setAppReady] = useState(
     () => typeof document === 'undefined'
   );
-  const [screenStack, setScreenStack] = useState([SCREEN.MAIN]);
+  const [screenStack, setScreenStack] = useState([SCREEN.INTRO]);
   const [selectedMonths, setSelectedMonths] = useState(1);
   const [locationsTab, setLocationsTab] = useState(LOCATIONS_TABS.PURCHASED);
   const [selectedLocationId, setSelectedLocationId] = useState(DEFAULT_LOCATION.id);
@@ -517,6 +519,9 @@ export default function App() {
         <AppLoadingScreen />
       ) : (
         <>
+      {screen === SCREEN.INTRO && (
+        <IntroScreen onSkip={goHome} onContinue={() => openLocations(LOCATIONS_TABS.AVAILABLE)} />
+      )}
       {screen === SCREEN.MAIN && (
         <MainScreen
           deviceCounts={deviceCounts}

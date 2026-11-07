@@ -11,6 +11,7 @@ import { joinClasses as join } from './utils';
  */
 function AppTabBar({
   type = 'navigation',
+  color = 'primary',
   selected = 'home',
   onSelect,
   children,
@@ -39,6 +40,7 @@ function AppTabBar({
       className={join(
         'bitt-app-tabbar',
         'bitt-app-tabbar--action',
+        color === 'ghost' && 'bitt-app-tabbar--ghost',
         hasSubline && 'bitt-app-tabbar--action-with-subline',
         hidden && 'bitt-app-tabbar--hidden',
       )}

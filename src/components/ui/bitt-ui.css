@@ -634,6 +634,11 @@
   backdrop-filter:blur(11.2px);
   -webkit-backdrop-filter:blur(11.2px);
 }
+.bitt-app-tabbar--action.bitt-app-tabbar--ghost {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 .bitt-app-tabbar--action-with-subline {
   /* A 16px subline + 4px gap occupies the 20px tail below the CTA. Reduce
      shell padding by that same amount while preserving the CTA baseline. */

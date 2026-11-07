@@ -32,11 +32,17 @@ One shared fixed bottom component with exactly two visual variants.
 - The CTA bottom edge uses `--app-bottom-cta-clearance`, the exact same token used by `BottomSheet`. At the Figma/iOS 34 px safe-bottom reference this resolves to 54 px from the viewport edge.
 - If the optional 16 px subline is used later, its 4 px gap + 16 px line occupy the 20 px tail and the shell reduces bottom padding by that same amount, preserving the same CTA baseline.
 
+### `color="ghost"`
+
+- For action/button-only bars, removes the backing surface and blur while retaining the standard positioning, button slot and safe-area clearance.
+- `primary` is the default and preserves existing action and navigation appearances.
+
 ## API
 
 | Prop | Notes |
 | --- | --- |
 | `type` | `navigation` or `action` |
+| `color` | `primary` (default) or `ghost` for transparent action bars |
 | `selected`, `onSelect` | navigation only |
 | `children` | action content |
 | `label`, `subline`, `showSubtle` | action convenience API |

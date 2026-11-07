@@ -1,0 +1,34 @@
+@font-face {
+  font-family: 'Intro Martian';
+  src: url('../../fonts/martian-grotesk-heading.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Intro Nothing';
+  src: url('../../fonts/nothing-brand.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}
+.intro-screen { position: relative; height: var(--app-viewport-height); background: #0a0c0f; overflow: hidden; }
+.intro-screen__planet { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.intro-screen__skip.bitt-button {
+  position: absolute; z-index: 2; top: calc(8px + var(--app-safe-top));
+  right: calc(20px + var(--app-safe-right)); padding-inline: 0; min-width: 0;
+}
+.intro-screen__skip .bitt-button__label { padding-inline: 0; }
+.intro-screen__copy {
+  position: absolute; left: 20px; right: 20px;
+  bottom: calc(var(--app-bottom-cta-clearance) + 56px + 48px);
+  text-align: center; pointer-events: none; opacity: 0;
+}
+.intro-screen__brand { margin: 0 0 8px; color: rgba(255,255,255,.5); font: 400 24px/29px 'Intro Nothing', monospace; }
+.intro-screen__title { margin: 0; color: #fff; font: 400 clamp(26px, 7.9vw, 32px)/1.25 'Intro Martian', sans-serif; }
+.intro-screen__action { opacity: 0; pointer-events: none; }
+.intro-screen--started .intro-screen__copy { animation: intro-fade-up 350ms cubic-bezier(.25,0,.1,1) 2250ms both; }
+.intro-screen--started .intro-screen__action { animation: intro-fade 350ms cubic-bezier(.25,0,.1,1) 2350ms both; pointer-events: auto; }
+@keyframes intro-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes intro-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .intro-screen--started .intro-screen__copy, .intro-screen--started .intro-screen__action { animation: none; opacity: 1; }
+}

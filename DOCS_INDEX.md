@@ -63,12 +63,13 @@ Read `/AGENTS.md` first. Every source entry below has an adjacent Markdown contr
 | `HistoryScreen` | `src/screens/HistoryScreen/HistoryScreen.js` | `src/screens/HistoryScreen/HistoryScreen.md` |
 | `HistoryDetailScreen` | `src/screens/HistoryDetailScreen/HistoryDetailScreen.js` | `src/screens/HistoryDetailScreen/HistoryDetailScreen.md` |
 | `PaymentSimulationScreen` | `src/screens/PaymentSimulationScreen/PaymentSimulationScreen.js` | `src/screens/PaymentSimulationScreen/PaymentSimulationScreen.md` |
+| `IntroScreen` | `src/screens/IntroScreen/IntroScreen.js` | `src/screens/IntroScreen/IntroScreen.md` |
 | `MainScreen` | `src/screens/MainScreen/MainScreen.js` | `src/screens/MainScreen/MainScreen.md` |
 | `LocationsScreen` | `src/screens/LocationsScreen/LocationsScreen.js` | `src/screens/LocationsScreen/LocationsScreen.md` |
 | `ProfileScreen` | `src/screens/ProfileScreen/ProfileScreen.js` | `src/screens/ProfileScreen/ProfileScreen.md` |
 | `ReferralScreen` | `src/screens/ReferralScreen/ReferralScreen.js` | `src/screens/ReferralScreen/ReferralScreen.md` |
 
-Total documented component/screen sources: **63**.
+Total documented component/screen sources: **64**.
 - `src/utils/preloadAssets.md` — asynchronous lightweight visual-asset cache warmup and runtime asset policy.
 
 - `src/utils/appReadiness.md` — page-session custom-font readiness gate.
