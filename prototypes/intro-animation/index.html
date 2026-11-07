@@ -15,7 +15,7 @@ body { font-family: "Golos UI", -apple-system, BlinkMacSystemFont, "Segoe UI", A
 #stage { position: fixed; inset: 0; }
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .text { text-align: center; margin-bottom: 24px; pointer-events: none; }
-.title { font-family: "Martian Grotesk", sans-serif; font-weight: 500; font-size: 32px; line-height: 40px; opacity: 0; will-change: transform, opacity; }
+.title { font-family: "Martian Grotesk", sans-serif; font-weight: 500; font-size: clamp(26px, 7.9vw, 32px); line-height: 1.25; white-space: nowrap; opacity: 0; will-change: transform, opacity; }
 .subtitle { margin-top: 8px; font-size: 16px; line-height: 22px; font-weight: 400; color: rgba(255,255,255,.5); opacity: 0; will-change: transform, opacity; }
 .ui { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px calc(20px + var(--safe-bottom)); pointer-events: none; }
 .ui.live { pointer-events: auto; }
@@ -111,10 +111,20 @@ const SETTINGS = {
     labelMargin: 8,                // px от края экрана до подписи: шар можно обрезать, метки — нет
     topInset: 40,                  // px сверху под системную шапку Telegram
     closeFocus: [60, 105],         // [широта, долгота] точки, в которую встраивается логотип
-    finalView: [28, 72],           // [широта, долгота] центра вида после отъезда (ref5)
+    finalView: [28, 72],           // [широта, долгота] центра вида по ref5: исходная точка подбора ракурса
     idleDegPerSec: 2.5,            // фоновое вращение (ref3: ≈2–3°/с), фигуры едут вправо
     revealSpread: 0.55,            // доля окна morph на разбег проявления точек от центра
     revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
+  },
+  fit: {                           // подбор финального ракурса под экран (правка 5)
+    lat: [18, 42],                 // перебор наклона (широта центра вида), °: держимся близко к ref5
+    lon: [52, 90],                 // перебор долготы центра вида, °: Евразия сверху, JP не у самого горизонта
+    minZ: 0.3,                     // метки должны быть на передней стороне с запасом (не у самого горизонта)
+    minRadiusShare: 0.6,           // если не влезает, радиус уменьшается, но не ниже 60% от желаемого
+    viewPenaltyPxPerDeg: 1.2,      // цена отхода от ракурса ref5, px радиуса за градус
+    labelOptions: {                // допустимые стороны подписей; первая — как на ref5
+      RU: ['below'], LT: ['above'], DE: ['left', 'above'], KZ: ['right', 'below'], JP: ['right', 'above', 'left'],
+    },
   },
   shade: {                         // затемнение низа планеты под текст
     fromAboveTitle: 0.30,          // начало градиента: доля ширины выше заголовка
@@ -282,6 +292,13 @@ const bC = document.getElementById('btnContinue');
 const bS = document.getElementById('btnSkip');
 
 let L = {};
+function labelBox(at, x, y, w, h) {
+  const gap = SETTINGS.label.gap;
+  let lx = x - w / 2, ly = y - h / 2;
+  if (at === 'left') lx = x - gap - w; if (at === 'right') lx = x + gap;
+  if (at === 'above') ly = y - gap - h; if (at === 'below') ly = y + gap - 2;
+  return [lx, ly, w, h];
+}
 function layout() {
   const g = SETTINGS.globe;
   const logoSize = Math.min(W * SETTINGS.logo.sizeOfWidth, SETTINGS.logo.maxSize);
@@ -292,26 +309,58 @@ function layout() {
   // блок текста и кнопок неразделим и стоит внизу; шар занимает свободную высоту над ним
   const textTop = ui.offsetTop + textEl.offsetTop;
   const Hf = Math.max(120, textTop - g.topInset);
-  // горизонтальные границы меток в финальном виде при R = 1 (с подписями)
-  ctx.font = SETTINGS.label.font;
-  const P1 = project(g.finalView[0], g.finalView[1], 1, 0, 0);
-  let uMin = 1e9, uMax = -1e9, padL = 0, padR = 0;
-  for (const k in SETTINGS.places) {
-    const p = SETTINGS.places[k]; const [u] = P1(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
-    const lw = ctx.measureText(p.label).width + 2 * SETTINGS.label.padX + SETTINGS.label.gap;
-    const left = p.at === 'left' ? lw : 4, right = p.at === 'right' ? lw : 4;
-    if (u < uMin || (u === uMin)) { uMin = u; padL = left; }
-    if (u > uMax) { uMax = u; padR = right; }
-  }
-  const Rfit = g.radiusOfFree * Hf;
-  const Rspan = (W - 2 * g.labelMargin - padL - padR) / (uMax - uMin);
-  const Rf = Math.min(Rfit, Rspan);
-  // по X: метки по центру экрана; по Y: если шар ужат по ширине, он делит разницу пополам
-  const cxf = g.labelMargin + padL - uMin * Rf + ((W - 2 * g.labelMargin - padL - padR) - (uMax - uMin) * Rf) / 2;
+  // ---- подбор финального ракурса: шар заполняет свободную высоту, метки с подписями — в кадре ----
+  const fit = SETTINGS.fit, lb = SETTINGS.label;
+  ctx.font = lb.font;
+  const keys = Object.keys(SETTINGS.places);
+  const lw = {}; keys.forEach(k => { lw[k] = ctx.measureText(SETTINGS.places[k].label).width + 2 * lb.padX; });
   const overlap = (1 - g.centerOfFree) / g.radiusOfFree; // верх заголовка = центр + overlap·R
   const topGap = g.centerOfFree - g.radiusOfFree;        // зазор над шаром, доля Hf
-  const cyf = lerp(textTop - overlap * Rf, g.topInset + topGap * Hf + Rf, 0.5);
-  L = { ls, lcx, lcy, Rf, cxf, cyf, Rc, logoSize, textTop };
+  const Rfit = g.radiusOfFree * Hf;
+  // шар прижат к верху (без пустоты над ним); если он меньше желаемого, низ уходит под затемнение у текста
+  const cyOf = Rr => g.topInset + topGap * Hf + Rr;
+  const combos = keys.reduce((acc, k) => acc.flatMap(c => fit.labelOptions[k].map(o => ({ ...c, [k]: o }))), [{}]);
+  const boxesAt = (pos, Rr, combo) => keys.map(k => {
+    const [u, v] = pos[k], x = u * Rr, y = v * Rr, w = lw[k], h = lb.height;
+    return [labelBox(combo[k], x, y, w, h), [x - 5, y - 5, 10, 10]];
+  });
+  const check = (pos, Rr, combo) => {
+    const bx = boxesAt(pos, Rr, combo), cy = cyOf(Rr);
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const [lbx, pt] of bx) for (const r of [lbx, pt]) { x0 = Math.min(x0, r[0]); x1 = Math.max(x1, r[0] + r[2]); y0 = Math.min(y0, r[1]); y1 = Math.max(y1, r[1] + r[3]); }
+    if (x1 - x0 > W - 2 * g.labelMargin) return null;
+    if (cy + y0 < g.topInset || cy + y1 > textTop - 12) return null;
+    for (let i = 0; i < bx.length; i++) for (let j = 0; j < bx.length; j++) {
+      if (i === j) continue; const a = bx[i][0];
+      for (const b of (j > i ? [bx[j][0], bx[j][1]] : [bx[j][1]])) if (a[0] < b[0] + b[2] + 2 && b[0] < a[0] + a[2] + 2 && a[1] < b[1] + b[3] + 2 && b[1] < a[1] + a[3] + 2) return null;
+    }
+    return [x0, x1];
+  };
+  let best = null;
+  for (let lat0 = fit.lat[0]; lat0 <= fit.lat[1]; lat0 += 1) for (let lon0 = fit.lon[0]; lon0 <= fit.lon[1]; lon0 += 1) {
+    const P1 = project(lat0, lon0, 1, 0, 0); const pos = {}; let ok = true;
+    for (const k of keys) { const p = SETTINGS.places[k]; const q = P1(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon); if (q[2] < fit.minZ) { ok = false; break; } pos[k] = q; }
+    if (!ok) continue;
+    const pen = fit.viewPenaltyPxPerDeg * Math.hypot(lat0 - g.finalView[0], lon0 - g.finalView[1]);
+    for (const combo of combos) {
+      let lo = Rfit * fit.minRadiusShare, hi = Rfit, ext = check(pos, hi, combo), Rr = hi;
+      if (!ext) {
+        if (!check(pos, lo, combo)) continue;
+        for (let it = 0; it < 16; it++) { const m = (lo + hi) / 2; if (check(pos, m, combo)) lo = m; else hi = m; }
+        Rr = lo; ext = check(pos, Rr, combo);
+      }
+      const order = keys.reduce((n, k) => n + (combo[k] === fit.labelOptions[k][0] ? 0 : 1), 0);
+      const score = Rr - pen - order * 2;
+      if (!best || score > best.score) best = { score, Rr, lat0, lon0, combo, ext };
+    }
+  }
+  if (!best) best = { Rr: Rfit * fit.minRadiusShare, lat0: g.finalView[0], lon0: g.finalView[1], combo: Object.fromEntries(keys.map(k => [k, SETTINGS.places[k].at])), ext: [-W / 2, W / 2] };
+  const Rf = best.Rr;
+  // по X: метки с подписями — по центру экрана (шар может уходить за края)
+  const cxf = W / 2 - (best.ext[0] + best.ext[1]) / 2;
+  const cyf = cyOf(Rf);
+  L = { ls, lcx, lcy, Rf, cxf, cyf, Rc, logoSize, textTop, view: [best.lat0, best.lon0], labelAt: best.combo, Rfit };
+
 
   L.logoDots = [];
   LOGO_GRID.forEach((row, r) => row.forEach((cell, c) => {
@@ -364,12 +413,12 @@ function camera(t) {
   const R = lerp(L.Rc, L.Rf, pO);
   const cx = lerp(W / 2, L.cxf, pO);
   const cy = lerp(L.lcy, L.cyf, pO);
-  const lat0 = lerp(g.closeFocus[0], g.finalView[0], pO);
+  const lat0 = lerp(g.closeFocus[0], L.view[0], pO);
   const es = E.spin(prog(t, T.spin));
   // фоновое вращение после поворота: скорость растёт smoothstep'ом от 0, угол — её точный интеграл
   const rd = (T.idleRamp[1] - T.idleRamp[0]) / 1000, u = clamp01((t - T.idleRamp[0]) / (T.idleRamp[1] - T.idleRamp[0]));
   const idleDeg = g.idleDegPerSec * (t <= T.idleRamp[0] ? 0 : t < T.idleRamp[1] ? rd * (u * u * u - u * u * u * u / 2) : rd / 2 + (t - T.idleRamp[1]) / 1000);
-  const lon0 = g.finalView[1] - idleDeg + (g.closeFocus[1] - g.finalView[1]) * (1 - es);
+  const lon0 = L.view[1] - idleDeg + (g.closeFocus[1] - L.view[1]) * (1 - es);
   return { R, cx, cy, lat0, lon0 };
 }
 
@@ -599,9 +648,7 @@ function render(t) {
     const k0 = key === 'RU' ? clamp01(prog(t, T.redDot)) : (arrived[key] || 0);
     const k = E.ui(k0) * vis(z); if (k <= 0.002) continue;
     const tw = ctx.measureText(p.label).width, w = tw + 2 * lb.padX, h = lb.height;
-    let lx = x - w / 2, ly = y - h / 2;
-    if (p.at === 'left') lx = x - lb.gap - w; if (p.at === 'right') lx = x + lb.gap;
-    if (p.at === 'above') ly = y - lb.gap - h; if (p.at === 'below') ly = y + lb.gap - 2;
+    const [lx, ly] = labelBox(L.labelAt[key] || p.at, x, y, w, h);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = k;
     ctx.fillStyle = lb.bg; ctx.beginPath(); ctx.roundRect(lx, ly, w, h, lb.radius); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillText(p.label, lx + lb.padX, ly + h / 2 + 1);
@@ -635,6 +682,7 @@ window.intro = {
   renderFrame(i) { render(i * 1000 / SETTINGS.fps); },
   renderAt(ms) { render(ms); },
   cameraAt(ms) { return camera(ms); },
+  fitInfo() { return { W, H, R: L.Rf, Rfit: L.Rfit, view: L.view, labelAt: L.labelAt, cx: L.cxf, cy: L.cyf, textTop: L.textTop }; },
   ready: null,
 };
 window.addEventListener('resize', () => { resize(); if (RECORD || FIXED_T != null || REDUCED) render(window.__lastT ?? T.end); });
