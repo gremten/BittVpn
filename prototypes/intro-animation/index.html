@@ -54,17 +54,18 @@ const SETTINGS = {
     logoIn:       [100, 350],      // логотип проявляется
     pulse:        [300, 1150],     // один удар: волна-разрыв один раз проходит по линии слева направо
     lineFade:     [1100, 1350],    // линия растворяется, пока точки уходят в планету
-    morph:        [1050, 2100],    // точки встраиваются в планету (камера близко)
-    pullOut:      [1850, 2650],    // камера отдаляется, перекрывая хвост встраивания
-    spin:         [2000, 3000],    // вращение на хвосте встраивания, переходит в фоновое
+    morph:        [1050, 2150],    // точки встраиваются в планету (камера близко)
+    pullOut:      [1850, 2700],    // камера отдаляется, перекрывая хвост встраивания
+    spin:         [2000, 2700],    // поворот к финальному ракурсу; тормозит до нуля ровно с концом отъезда
+    idleRamp:     [2700, 3400],    // фоновое вращение плавно подхватывается после поворота
     title:        [2150, 2450],    // «Добро пожаловать»
     subtitle:     [2200, 2500],    // подзаголовок
     btnContinue:  [2250, 2550],    // «Продолжить»
     btnSkip:      [2290, 2590],    // «Пропустить»
     uiLive:       2150,            // с этого момента кнопки нажимаются
-    redDot:       [2350, 2600],    // красная точка RU
-    arcs:         [2450, 3000],    // дуги с самолётиками растут из красной точки (весь интервал, с разбегом)
-    end:          3000,
+    redDot:       [2400, 2700],    // красная точка RU
+    arcs:         [2500, 3100],    // дуги с самолётиками растут из красной точки (весь интервал, с разбегом)
+    end:          3100,
   },
   ease: {
     logoIn:  [0.25, 0, 0.1, 1],    // мягкий вход, длинное торможение
@@ -73,9 +74,8 @@ const SETTINGS = {
     morph:   [0.5, 0, 0.25, 1],    // полёт одной точки: мягкий отрыв, долгая плавная посадка
     reveal:  [0.45, 0, 0.3, 1],    // проявление точек планеты вокруг логотипа
     pullOut: [0.6, 0, 0.15, 1],    // камера трогается очень мягко (скорость с нуля), разгоняется, долго тормозит
-    spin:    [0.5, 0, 0.15, 1],    // поворот: разгон и длинный выбег в фоновое вращение
-    ui:      [0.22, 1, 0.36, 1],   // ease-out expo-подобная
-    redDot:  [0.34, 1.56, 0.64, 1],// упругое появление с небольшим перелётом
+    ui:      [0.25, 0, 0.1, 1],    // с нулевой скорости, быстро набирает и долго тормозит
+    redDot:  [0.4, 0, 0.2, 1.4],   // с нулевой скорости, небольшой перелёт масштаба в конце
     arc:     [0.5, 0, 0.2, 1],     // дуга: разгон от точки, торможение у цели
   },
   logo: {
@@ -83,6 +83,10 @@ const SETTINGS = {
     maxSize: 300,                  // px
     scaleFrom: 0.96,               // появление: масштаб 0.96 → 1
     staggerMs: 80,                 // разбег появления точек от центра к краю
+  },
+  spin: {                          // профиль скорости поворота (не bezier: задаётся скоростью)
+    accelShare: 0.08,              // короткий разгон с нуля (8% окна ≈ 56 мс), дальше почти ровная высокая скорость
+    decelPower: 2.4,               // торможение (1−u)^2.4: длинный мягкий выбег, скорость в конце ровно 0
   },
   pulse: {
     gap: 0.22,                     // длина разрыва в середине хода, доля длины линии
@@ -109,7 +113,8 @@ const SETTINGS = {
     closeFocus: [60, 105],         // [широта, долгота] точки, в которую встраивается логотип
     finalView: [28, 72],           // [широта, долгота] центра вида после отъезда (ref5)
     idleDegPerSec: 2.5,            // фоновое вращение (ref3: ≈2–3°/с), фигуры едут вправо
-    revealSpread: 0.5,             // доля окна morph на разбег проявления точек от центра
+    revealSpread: 0.55,            // доля окна morph на разбег проявления точек от центра
+    revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
   },
   shade: {                         // затемнение низа планеты под текст
     fromAboveTitle: 0.30,          // начало градиента: доля ширины выше заголовка
@@ -119,7 +124,7 @@ const SETTINGS = {
   arcs: {
     color: 'rgba(255,255,255,0.75)',
     width: 1.25,                   // CSS px
-    eachMs: 480,                   // рост одной дуги (полёт самолётика)
+    eachMs: 520,                   // рост одной дуги (полёт самолётика)
     staggerMs: 24,
     planeSize: 11,                 // px, длина самолётика
     planeFadeMs: 140,              // самолётик гаснет на подлёте к цели
@@ -183,6 +188,14 @@ function bezier([x1, y1, x2, y2]) {
   };
 }
 const E = {}; for (const k in SETTINGS.ease) E[k] = bezier(SETTINGS.ease[k]);
+// поворот: интеграл скорости v(τ) = smoothstep(τ/a) до a, затем ((1−τ)/(1−a))^p; нормирован к 1
+E.spin = (() => {
+  const a = SETTINGS.spin.accelShare, pw = SETTINGS.spin.decelPower, n = 1024, tab = new Float64Array(n + 1);
+  const v = u => u < a ? (x => x * x * (3 - 2 * x))(u / a) : Math.pow((1 - u) / (1 - a), pw);
+  for (let i = 1; i <= n; i++) tab[i] = tab[i - 1] + (v((i - 0.5) / n)) / n;
+  for (let i = 0; i <= n; i++) tab[i] /= tab[n];
+  return x => { if (x <= 0) return 0; if (x >= 1) return 1; const f = x * n, i = Math.floor(f); return tab[i] + (tab[i + 1] - tab[i]) * (f - i); };
+})();
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const prog = (t, [a, b]) => clamp01((t - a) / (b - a));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -353,11 +366,10 @@ function camera(t) {
   const cy = lerp(L.lcy, L.cyf, pO);
   const lat0 = lerp(g.closeFocus[0], g.finalView[0], pO);
   const es = E.spin(prog(t, T.spin));
-  const tt = Math.max(t, T.spin[0]);
-  // фоновое вращение набирается плавно (0.6 с), поворот догоняет его без скачка скорости
-  const ramp = smooth((tt - T.spin[0]) / 600);
-  const lon0 = g.finalView[1] - g.idleDegPerSec * (tt - T.spin[1]) / 1000 * ramp
-             + (g.closeFocus[1] - g.finalView[1]) * (1 - es);
+  // фоновое вращение после поворота: скорость растёт smoothstep'ом от 0, угол — её точный интеграл
+  const rd = (T.idleRamp[1] - T.idleRamp[0]) / 1000, u = clamp01((t - T.idleRamp[0]) / (T.idleRamp[1] - T.idleRamp[0]));
+  const idleDeg = g.idleDegPerSec * (t <= T.idleRamp[0] ? 0 : t < T.idleRamp[1] ? rd * (u * u * u - u * u * u * u / 2) : rd / 2 + (t - T.idleRamp[1]) / 1000);
+  const lon0 = g.finalView[1] - idleDeg + (g.closeFocus[1] - g.finalView[1]) * (1 - es);
   return { R, cx, cy, lat0, lon0 };
 }
 
@@ -411,11 +423,11 @@ function dotBatch() {
   const m = new Map();
   return {
     add(x, y, r, a) {
-      const q = Math.round(a * 64); if (q <= 0) return;
+      const q = Math.round(a * 128); if (q <= 0) return;
       let p = m.get(q); if (!p) { p = new Path2D(); m.set(q, p); }
       p.moveTo((x + r) * dpr, y * dpr); p.arc(x * dpr, y * dpr, r * dpr, 0, Math.PI * 2);
     },
-    fill() { for (const [q, p] of m) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, q / 64)})`; ctx.fill(p); } },
+    fill() { for (const [q, p] of m) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, q / 128)})`; ctx.fill(p); } },
   };
 }
 
@@ -434,6 +446,10 @@ function render(t) {
   const cam = camera(t);
   const P = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy);
   const rScale = Math.pow(cam.R / L.Rf, g.dotZoomExp);
+  // затемнение низа под текст: множитель яркости точек (не заливка поверх — та даёт мерцание округления)
+  const sh = SETTINGS.shade, shK = E.pullOut(prog(t, T.pullOut)) * sh.maxAlpha;
+  const sy0 = L.textTop - W * sh.fromAboveTitle, sy1 = L.textTop + W * sh.toBelowTitle;
+  const shade = y => { if (shK <= 0 || y <= sy0) return 1; const u = (y - sy0) / (sy1 - sy0); return 1 - shK * (u >= 1 ? 1 : u < 0.55 ? 0.6 * u / 0.55 : 0.6 + 0.4 * (u - 0.55) / 0.45); };
 
   // ---- точки планеты ----
   if (inMorph) {
@@ -451,7 +467,7 @@ function render(t) {
         if (k <= 0) continue;
       }
       const [r, a] = dotLook(d.land, z, s, rScale);
-      batch.add(x, y, r, a * k);
+      batch.add(x, y, r * (k < 1 ? lerp(g.revealSizeFrom, 1, k) : 1), a * k * shade(y));
     }
     batch.fill();
   }
@@ -483,7 +499,7 @@ function render(t) {
           r = lerp(r, tr, k); a = lerp(a, ta, k);
         } else a *= 1 - k;
       }
-      batch.add(x, y, r, a);
+      batch.add(x, y, r, a * shade(y));
     }
     batch.fill();
 
@@ -498,21 +514,6 @@ function render(t) {
       const g0 = Math.max(0, c - half), g1 = Math.min(1, c + half);
       if (g0 > 0) drawLine(0, g0, la, sc);
       if (g1 < 1) drawLine(g1, 1, la, sc);
-    }
-  }
-
-  // ---- затемнение низа планеты под текст ----
-  if (inMorph) {
-    const sh = SETTINGS.shade;
-    const y0 = L.textTop - W * sh.fromAboveTitle, y1 = L.textTop + W * sh.toBelowTitle;
-    const k = E.pullOut(prog(t, T.pullOut));
-    if (k > 0) {
-      const gr = ctx.createLinearGradient(0, y0 * dpr, 0, y1 * dpr);
-      gr.addColorStop(0, 'rgba(10,12,15,0)');
-      gr.addColorStop(0.55, `rgba(10,12,15,${0.6 * sh.maxAlpha * k})`);
-      gr.addColorStop(1, `rgba(10,12,15,${sh.maxAlpha * k})`);
-      ctx.fillStyle = gr; ctx.fillRect(0, y0 * dpr, canvas.width, (y1 - y0) * dpr);
-      ctx.fillStyle = `rgba(10,12,15,${sh.maxAlpha * k})`; ctx.fillRect(0, y1 * dpr, canvas.width, canvas.height - y1 * dpr);
     }
   }
 
@@ -633,6 +634,7 @@ window.intro = {
   frameCount: () => Math.ceil((T.end + 500) / 1000 * SETTINGS.fps) + 1,
   renderFrame(i) { render(i * 1000 / SETTINGS.fps); },
   renderAt(ms) { render(ms); },
+  cameraAt(ms) { return camera(ms); },
   ready: null,
 };
 window.addEventListener('resize', () => { resize(); if (RECORD || FIXED_T != null || REDUCED) render(window.__lastT ?? T.end); });
