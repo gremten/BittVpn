@@ -118,18 +118,19 @@ const SETTINGS = {
     labelMargin: 4,                // px от края экрана до подложки подписи (текст — ещё +4): шар можно обрезать, метки — нет
     topInset: 40,                  // px сверху под системную шапку Telegram
     closeFocus: [60, 105],         // широта точки встраивания логотипа; долгота = финальная + spin.deg
-    axisTiltDeg: 22,               // наклон оси: северный полюс завален вправо вокруг оси взгляда, ° (как у глобуса, мягче 23.4°)
+    axisTiltDeg: 0,                // наклон оси вправо вокруг оси взгляда, °; правка 7: убран (ось вертикальная), механизм оставлен
     axisTiltInMorph: 0,            // наклон в момент встраивания (сетка логотипа ровная); к финалу растёт вместе с отъездом
-    finalView: [46, 56],           // [широта, долгота] предпочтительного центра вида (с наклоном оси 22°; без наклона был 28/72 по ref5)
+    finalView: [26, 74],           // [широта, долгота] предпочтительного центра вида (близко к ref5 28/72, чуть крупнее шар)
     idleDegPerSec: 2.5,            // фоновое вращение (ref3: ≈2–3°/с), фигуры едут вправо
     revealSpread: 0.55,            // доля окна morph на разбег проявления точек от центра
     revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
   },
   fit: {                           // подбор финального ракурса под экран (правка 5)
-    lat: [10, 50],                 // перебор широты центра вида, °
-    lon: [50, 100],                // перебор долготы центра вида, °
+    lat: [14, 40],                 // перебор широты центра вида, °
+    lon: [56, 92],                 // перебор долготы центра вида, °
     step: 2,                       // шаг перебора, °
-    minZ: 0.45,                    // метки ближе к центру диска, не у горизонта; если ракурса нет — порог снижается до 0.3, затем 0.15
+    minZ: 0.3,                     // метки на передней стороне с запасом; если ракурса нет — порог снижается до 0.15
+    edgeFadePx: 24,                // метка с подписью, уходящая за край экрана, гаснет на этом отрезке, а не обрывается
     minRadiusShare: 0.45,          // если не влезает, радиус уменьшается, но не ниже 45% от желаемого
     viewPenaltyPxPerDeg: 3,        // цена отхода от предпочтительного ракурса, px радиуса за градус (одинаковый вид на разных экранах)
     labelOptions: {                // допустимые стороны подписей; первая — как на ref5
@@ -357,7 +358,7 @@ function layout() {
     return [x0, x1];
   };
   let best = null;
-  for (const minZ of [fit.minZ, 0.3, 0.15]) {
+  for (const minZ of [fit.minZ, 0.15]) {
   if (best) break;
   for (let lat0 = fit.lat[0]; lat0 <= fit.lat[1]; lat0 += fit.step) for (let lon0 = fit.lon[0]; lon0 <= fit.lon[1]; lon0 += fit.step) {
     const P1 = project(lat0, lon0, 1, 0, 0, g.axisTiltDeg); const pos = {}; let ok = true;
@@ -612,6 +613,17 @@ function render(t) {
   };
   const [fz0, fz1] = SETTINGS.depthFade;
   const vis = z => smooth((z - fz0) / (fz1 - fz0));
+  // гашение у краёв экрана: метка и её подпись — одно целое; полностью гаснет, уйдя за край на edgeFadePx − отступ
+  const ef = SETTINGS.fit.edgeFadePx, em = SETTINGS.globe.labelMargin;
+  ctx.font = L.lfont;
+  const edgeK = {};
+  for (const key in pl) {
+    const p = pl[key]; const [x, y] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    const w = ctx.measureText(p.label).width + 2 * SETTINGS.label.padX;
+    const [lx] = labelBox(L.labelAt[key] || p.at, x, y, w, L.lh);
+    const x0 = Math.min(lx, x - 5), x1 = Math.max(lx + w, x + 5);
+    edgeK[key] = smooth((x0 - (em - ef)) / ef) * smooth((W - x1 - (em - ef)) / ef);
+  }
   const arrived = {};
   const planes = [];
   if (t >= T.arcs[0]) {
@@ -645,7 +657,7 @@ function render(t) {
   // точки-цели
   for (const key of SETTINGS.arcOrder) {
     const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
-    const k = (arrived[key] || 0) * vis(z); if (k <= 0) continue;
+    const k = (arrived[key] || 0) * vis(z) * edgeK[key]; if (k <= 0) continue;
     const r = 3.2 * (0.6 + 0.4 * E.ui(arrived[key]));
     const gr = ctx.createRadialGradient(x * dpr, y * dpr, 0, x * dpr, y * dpr, 10 * dpr);
     gr.addColorStop(0, `rgba(255,255,255,${0.35 * k})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
@@ -654,7 +666,7 @@ function render(t) {
   }
   // красная точка RU
   if (pR > 0) {
-    const [x, y, z] = ruP; const rd = SETTINGS.redDot; const v = vis(z);
+    const [x, y, z] = ruP; const rd = SETTINGS.redDot; const v = vis(z) * edgeK.RU;
     const pulse = t > T.redDot[1] ? 0.5 + 0.5 * Math.sin((t - T.redDot[1]) / 1000 * 2.2 - Math.PI / 2) : 0;
     const halo = Math.max(0, rd.halo * (0.85 + 0.3 * pulse) * pR);
     const gr = ctx.createRadialGradient(x * dpr, y * dpr, 0, x * dpr, y * dpr, halo * dpr + 0.01);
@@ -678,7 +690,7 @@ function render(t) {
   for (const key in pl) {
     const p = pl[key]; const [x, y, z] = P(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
     const k0 = key === 'RU' ? clamp01(prog(t, T.redDot)) : (arrived[key] || 0);
-    const k = E.ui(k0) * vis(z); if (k <= 0.002) continue;
+    const k = E.ui(k0) * vis(z) * edgeK[key]; if (k <= 0.002) continue;
     const tw = ctx.measureText(p.label).width, w = tw + 2 * lb.padX, h = L.lh;
     const [lx, ly] = labelBox(L.labelAt[key] || p.at, x, y, w, h);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = k;
