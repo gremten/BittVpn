@@ -10,6 +10,7 @@
 @font-face { font-family: "Nothing Font"; src: url(data:font/woff2;base64,d09GMk9UVE8AAAP8AAkAAAAAFNgAAAO1AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADaNHBmAAZAE2AiQDHAQGBYIQByAbNhRRlMnFEsCXCaYO2z2Hqc1AEWt3Q4tNpKTkF4cPhHkZ9jpd8/Y+p6MxeCL//j0zO59QIGyEpkaZjVqoqUV04K3yhq65CpEDue8GylxEuk98RVARAHa2dSVVxQybXG68+/wPB4ANONlggw0C1P7/93N1Ys2kbUgiEbpKJZXtTu9UGi4Nn77hDa80Doks3awEK1Vr+pIg8RjOVf4YDaiPnC+YIiKpn10EL5eC/n0boxKiUonKUonKNapwUaH9W53a/paqNCU3I5Rm/bJLx81ZjThFMG3S6ZroogvB/tsO+ecCo0krfhj8iBwwcjvvDYldRw8PLY3ymACko+KN5TEMKMTTvdcBPhQbk+3ZfoA/pNAv6Kb8oFRw476EYiGOQwsuoQua/gtRgmIxHmfQ+lbX2xfEydbDiW8dOEVwawidovi0w+1sCu8EpNogTsMPnke3s+nxcCxqbwYojMH4sXtf7Q8ZnUSqhlmS59BLIfznicePk5Ah/ZtGMxRG8+bDkCMZzqMl7Ndh7VZX1cwXcF6T5epwf9o2hYdsf6Y5Rf/WjZ4islpvtngbdz5hMHH+vOBPhquJguHkyash0XDSh3mJZ8r7eSER5FsZZPHu3OapcEU+36888Ca/Hfv594Gorpw8pVwZ5jv8yKqDVmxKn9Jm10NLMA2bJfhrzK3hU9NUYQeGYtCYRyPA5oEc+llxUJ0Yav8h+Z0jS2WfwG0U3ahKdXJZkVx2ANxx3lOTNI24QRQpW1KuR9iCWVmaPGuQPumJ+W1Q7UD7vB4Q4AtRJ7QoXdADfcIIpCpCHElyVe7LS/nszKXbLXti7+K3l8a9Ti+18/Nh/mnIK8LZ9k0W6lPfTsJwdZmK81pQxVFxDTup/LdJhYIDf/5aXNG6ymTjNQOQUBId99dlhL+tkv0bxa4PpgBfCAbzS/Ppdi5qF2QfcZj7Cnsg5uXmEzebmS9So6bwrGmLlyxiApX4+B3/naQyPWBPbxfjsx5SCYACDsjFIXK5sQAzodvZTE5ljm7ZRSzFxyinMIu35GfttFZSsAQA7XMF9i9/fddljP5JJOEuwOdSfSi/JlbLrQknExVIRF0FkspMOiHutQ1OQnrfnWp6FLDzgCcugFQgAY9DLAkYBXWpUMhoqZLOkkJnVmo0srE0jnywnRjfPuSYeTi+zqvF8oob3J3uqz6+TlwsS06WXfJw78p3d3Z3z3NfzeT7BU5rcT8n7Vl7crdtdba5EpiT/kzmvoTE3Se72ufUwzFF2oD2rk4BAAAA) format("woff2"); }
 :root { --bg: #0A0C0F; --safe-bottom: max(32px, env(safe-area-inset-bottom)); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 html, body { height: 100%; background: var(--bg); overflow: hidden; }
 body { font-family: "Golos UI", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
 #stage { position: fixed; inset: 0; }
@@ -24,6 +25,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .btn--primary { background: #fff; color: #0A0C0F; }
 .btn--secondary { background: #242A33; color: #fff; }
 .btn.pressed { transform: scale(0.985) !important; }
+.replay { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); height: 32px; padding: 7px 12px; border: 0; border-radius: 999px; background: #161A20; color: rgba(255,255,255,.7); font: 400 14px/18px "Golos UI", sans-serif; cursor: pointer; opacity: .85; }
+.replay:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.replay:active { transform: scale(0.985); }
 </style>
 </head>
 <body>
@@ -41,6 +45,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     </div>
   </div>
 </div>
+<!-- служебная кнопка прототипа (не часть дизайна); скрыта в режимах записи и стоп-кадра -->
+<button class="replay" id="replay" type="button">Перезапустить</button>
 <script>
 /* =====================================================================
    НАСТРОЙКИ. Все времена в миллисекундах от старта (0 мс).
@@ -180,8 +186,12 @@ const LOGO_LINE = { // вершины линии пульса в кадре 720 
    ===================================================================== */
 (() => {
 const params = new URLSearchParams(location.search);
-const RECORD = params.get('record') === '1';
-const FIXED_T = params.has('t') ? parseFloat(params.get('t')) : null;
+// те же режимы через #-ссылку (в Artifact query-параметры недоступны): #record, #record-autoplay, #t-1500
+const hash = location.hash.slice(1);
+const hashT = /^t-(\d+)$/.exec(hash);
+const RECORD = params.get('record') === '1' || hash === 'record' || hash === 'record-autoplay';
+const AUTOPLAY = params.get('autoplay') === '1' || hash === 'record-autoplay';
+const FIXED_T = params.has('t') ? parseFloat(params.get('t')) : hashT ? +hashT[1] : null;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const T = SETTINGS.timeline;
 
@@ -694,7 +704,7 @@ window.intro.ready = fontsReady.then(() => {
   if (RECORD) {
     console.log('record: intro.renderFrame(i), кадров ' + window.intro.frameCount());
     render(0);
-    if (params.get('autoplay') === '1') {
+    if (AUTOPLAY) {
       let i = 0; const n = window.intro.frameCount();
       const tick = () => { window.intro.renderFrame(i); if (++i < n) requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
@@ -704,6 +714,9 @@ window.intro.ready = fontsReady.then(() => {
   play();
 });
 window.addEventListener('keydown', e => { if ((e.key === 'r' || e.key === 'к') && !RECORD) play(); });
+const replay = document.getElementById('replay');
+if (RECORD || FIXED_T != null) replay.hidden = true;
+replay.addEventListener('click', () => { if (REDUCED) { render(T.end); return; } play(); });
 })();
 </script>
 </body>
