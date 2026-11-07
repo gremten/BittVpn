@@ -178,14 +178,14 @@ const SETTINGS = {
     revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
   },
   firstFlight: {                   // правки 11–12: самолёт из центра логотипа (это RU) летит поверх сцены в Литву
-    launchAtPulse: 0.75,           // вылет, когда линия пульса прорисована на 75%
+    launchAtPulse: 1.0,            // вылет, когда линия пульса прорисована на 100% (правка 13)
     othersAtFlight: 0.75,          // остальные самолёты вылетают, когда первый прошёл 75% пути
-    morphToArcMs: 450,             // после прилёта след плавно перетекает в дугу RU → LT на планете
+    morphToArcMs: 650,             // после прилёта след плавно перетекает в дугу RU → LT на планете
     on: true,
     key: 'LT',                     // страна прилёта
     // маршрут: петля вправо-вверх над сценой и заход в LT сверху справа; контрольные точки кубической кривой —
     // c1 от старта (конец линии пульса), c2 от точки прилёта, доли ширины и высоты экрана
-    route: { c1: [0.34, -0.06], c2: [0.36, -0.22] },
+    route: { c1: [0.34, 0], c2: [0.36, -0.22] },   // c1 по горизонтали: самолёт вылетает ровно в плоскости экрана
     size: 14,                      // px, длина самолёта
   },
   interact: {                      // правка 10: планету можно крутить пальцем после вступления (как физический глобус)
@@ -289,7 +289,8 @@ const T = SETTINGS.timeline;
 function deriveFlightTimes() {
   const ff = SETTINGS.firstFlight, inv = (f, y) => { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (f(m) < y) lo = m; else hi = m; } return (lo + hi) / 2; };
   const fw = SETTINGS.pulse.feather;
-  T.firstFlight[0] = Math.round(T.pulse[0] + inv(E.pulse, ff.launchAtPulse / (1 + fw)) * (T.pulse[1] - T.pulse[0]));
+  // доля прорисовки = сплошная часть линии (голова минус растушёвка): 1.0 — линия целиком, то есть конец пульса
+  T.firstFlight[0] = Math.round(T.pulse[0] + inv(E.pulse, Math.min(1, (ff.launchAtPulse + fw) / (1 + fw))) * (T.pulse[1] - T.pulse[0]));
   const tStar = Math.round(T.firstFlight[0] + inv(E.flight, ff.othersAtFlight) * (T.firstFlight[1] - T.firstFlight[0]));
   T.redDot[0] = tStar - 300; T.redDot[1] = tStar;
   T.arcs[0] = tStar; T.arcs[1] = tStar + 600;
@@ -689,8 +690,9 @@ function flightCurve(PM, t) {
     const mo = TUNE.on ? TUNE.mark : SETTINGS.final.on ? SETTINGS.final.markersOffsetPx : [0, 0];
     e = P3(p, Pf); e[0] += mo[0]; e[1] += mo[1]; r = P3(ru, Pf); r[0] += mo[0]; r[1] += mo[1];
   } else { e = P3(p, PM); r = P3(ru, PM); }
-  const w = smooth(prog(t, T.firstFlight));
-  const s = [lerp(L.lcx, r[0], w), lerp(L.lcy, r[1], w)];
+  // старт неподвижен (центр логотипа = RU): след растёт только от самолёта и не сжимается; в дугу RU → LT
+  // он перетекает после прилёта (drawFirstFlight)
+  const s = [L.lcx, L.lcy];
   const c1 = [s[0] + rt.c1[0] * W, s[1] + rt.c1[1] * H], c2 = [e[0] + rt.c2[0] * W, e[1] + rt.c2[1] * H];
   const B = u => { const v = 1 - u; return [v*v*v*s[0] + 3*v*v*u*c1[0] + 3*v*u*u*c2[0] + u*u*u*e[0], v*v*v*s[1] + 3*v*v*u*c1[1] + 3*v*u*u*c2[1] + u*u*u*e[1]]; };
   const D = u => { const v = 1 - u; return [3*v*v*(c1[0]-s[0]) + 6*v*u*(c2[0]-c1[0]) + 3*u*u*(e[0]-c2[0]), 3*v*v*(c1[1]-s[1]) + 6*v*u*(c2[1]-c1[1]) + 3*u*u*(e[1]-c2[1])]; };
@@ -714,7 +716,7 @@ function drawFirstFlight(t, PM, proj3) {
   const a = smooth(prog(t, [T.firstFlight[0], T.firstFlight[0] + 140])) * (1 - prog(t, [T.firstFlight[1] - 140, T.firstFlight[1] + 40]));
   if (a > 0) {
     const [x, y] = B(u), [dx, dy] = D(Math.min(0.999, Math.max(0.001, u)));
-    const sz = ff.size * lerp(0.6, 1, smooth(prog(t, [T.firstFlight[0], T.firstFlight[0] + 220])));
+    const sz = ff.size; // без роста размера: не читается как полёт «вглубь»
     ctx.setTransform(dpr, 0, 0, dpr, x * dpr, y * dpr); ctx.rotate(Math.atan2(dy, dx)); ctx.scale(sz / 24, sz / 24);
     ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.fill(PLANE);
     FLT.x = x; FLT.y = y; FLT.ang = Math.atan2(dy, dx); FLT.a = a;
