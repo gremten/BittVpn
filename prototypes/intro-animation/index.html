@@ -82,9 +82,9 @@ body.tuning canvas { cursor: grab; touch-action: none; }
   <div class="row"><label for="tSens">Чувствительность</label><input type="range" id="tSens" min="0.3" max="2.5" step="0.05"><output id="oSens"></output></div>
   <div class="row"><label for="tResume">Пауза до вращения, мс</label><input type="range" id="tResume" min="0" max="3000" step="50"><output id="oResume"></output></div>
   <div class="hint2">Первый самолёт и появление планеты — смотреть кнопкой «Играть».</div>
-  <div class="row"><label for="tFStart">Вылет самолёта, мс</label><input type="range" id="tFStart" min="800" max="2400" step="10"><output id="oFStart"></output></div>
-  <div class="row"><label for="tFDur">Полёт, мс</label><input type="range" id="tFDur" min="800" max="2400" step="10"><output id="oFDur"></output></div>
-  <div class="row"><label for="tTrail">Длина следа</label><input type="range" id="tTrail" min="0.05" max="0.9" step="0.01"><output id="oTrail"></output></div>
+  <div class="row"><label for="tFL">Вылет: доля пульса</label><input type="range" id="tFL" min="0.3" max="1" step="0.01"><output id="oFL"></output></div>
+  <div class="row"><label for="tFO">Остальные: доля пути</label><input type="range" id="tFO" min="0.3" max="1" step="0.01"><output id="oFO"></output></div>
+  <div class="row"><label for="tFDur">Прилёт в LT, мс</label><input type="range" id="tFDur" min="1800" max="3200" step="10"><output id="oFDur"></output></div>
   <div class="row"><label for="tMorph">Появление планеты, мс</label><input type="range" id="tMorph" min="400" max="1600" step="10"><output id="oMorph"></output></div>
   <div class="actions">
     <button class="primary" id="tCopy" type="button">Скопировать значения</button>
@@ -108,7 +108,7 @@ const SETTINGS = {
     logoIn:       [100, 350],      // точки логотипа проявляются (линии ещё нет)
     pulse:        [300, 1200],     // пульс: линия один раз плавно рисуется слева направо, голова растушёвана
     lineFade:     [1150, 1400],    // линия растворяется, пока точки уходят в планету
-    firstFlight:  [1800, 2900],    // правка 11: первый самолёт летит в Литву (LT) ровно во время поворота планеты
+    firstFlight:  [0, 2900],       // правка 12: вылет считается сам (75% пульса), прилёт в LT — к концу поворота планеты
     morph:        [1150, 1950],    // точки встраиваются в планету (правка 11: короче, 0.8 с)
     pullOut:      [1750, 2900],    // камера отдаляется (1.15 с), перекрывая хвост встраивания
     spin:         [1800, 2900],    // поворот к финальному ракурсу; тормозит до нуля ровно с концом отъезда
@@ -118,9 +118,9 @@ const SETTINGS = {
     btnContinue:  [2350, 2700],    // «Продолжить»
     btnSkip:      [2390, 2740],    // «Пропустить»
     uiLive:       2250,            // с этого момента кнопки нажимаются
-    redDot:       [2700, 3000],    // красная точка RU
-    ltArc:        [2850, 3250],    // дуга RU → LT растёт, пока след первого самолёта втягивается в LT
-    arcs:         [3000, 3600],    // дуги с самолётиками к DE, KZ, JP растут из красной точки (с разбегом)
+    redDot:       [0, 0],          // красная точка RU: считается сама — к вылету остальных самолётов
+    ltArc:        [0, 0],          // правка 12: считается сам — после прилёта след за 450 мс перетекает в дугу RU → LT на планете
+    arcs:         [0, 0],          // дуги с самолётиками к DE, KZ, JP: вылет, когда первый самолёт прошёл 75% пути
     end:          3600,
   },
   ease: {
@@ -177,15 +177,15 @@ const SETTINGS = {
     revealSpread: 0.55,            // доля окна morph на разбег проявления точек от центра
     revealSizeFrom: 0.35,          // проявляющаяся точка растёт от 35% размера вместе с яркостью
   },
-  firstFlight: {                   // правка 11: самолёт из конца линии пульса летит поверх сцены в Литву
+  firstFlight: {                   // правки 11–12: самолёт из центра логотипа (это RU) летит поверх сцены в Литву
+    launchAtPulse: 0.75,           // вылет, когда линия пульса прорисована на 75%
+    othersAtFlight: 0.75,          // остальные самолёты вылетают, когда первый прошёл 75% пути
+    morphToArcMs: 450,             // после прилёта след плавно перетекает в дугу RU → LT на планете
     on: true,
     key: 'LT',                     // страна прилёта
     // маршрут: петля вправо-вверх над сценой и заход в LT сверху справа; контрольные точки кубической кривой —
     // c1 от старта (конец линии пульса), c2 от точки прилёта, доли ширины и высоты экрана
     route: { c1: [0.34, -0.06], c2: [0.36, -0.22] },
-    trail: 0.35,                   // длина следа, доля маршрута
-    trailWidth: 1.6,               // px у головы, к хвосту тоньше
-    trailRetractMs: 350,           // после прилёта след втягивается в LT, навстречу растёт дуга RU → LT
     size: 14,                      // px, длина самолёта
   },
   interact: {                      // правка 10: планету можно крутить пальцем после вступления (как физический глобус)
@@ -285,6 +285,16 @@ const TUNE_HASH = hash === 'tune';
 const FIXED_T = params.has('t') ? parseFloat(params.get('t')) : hashT ? +hashT[1] : null;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const T = SETTINGS.timeline;
+// правка 12: моменты вылетов считаются из долей (SETTINGS.firstFlight), вызывается после создания кривых E
+function deriveFlightTimes() {
+  const ff = SETTINGS.firstFlight, inv = (f, y) => { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (f(m) < y) lo = m; else hi = m; } return (lo + hi) / 2; };
+  const fw = SETTINGS.pulse.feather;
+  T.firstFlight[0] = Math.round(T.pulse[0] + inv(E.pulse, ff.launchAtPulse / (1 + fw)) * (T.pulse[1] - T.pulse[0]));
+  const tStar = Math.round(T.firstFlight[0] + inv(E.flight, ff.othersAtFlight) * (T.firstFlight[1] - T.firstFlight[0]));
+  T.redDot[0] = tStar - 300; T.redDot[1] = tStar;
+  T.arcs[0] = tStar; T.arcs[1] = tStar + 600;
+  T.ltArc[0] = T.firstFlight[1]; T.ltArc[1] = T.firstFlight[1] + ff.morphToArcMs;
+}
 
 function bezier([x1, y1, x2, y2]) {
   const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
@@ -299,6 +309,7 @@ function bezier([x1, y1, x2, y2]) {
   };
 }
 const E = {}; for (const k in SETTINGS.ease) E[k] = bezier(SETTINGS.ease[k]);
+deriveFlightTimes();
 // поворот: интеграл скорости v(τ) = smoothstep(τ/a) до a, затем ((1−τ)/(1−a))^p; нормирован к 1
 E.spin = (() => {
   const a = SETTINGS.spin.accelShare, pw = SETTINGS.spin.decelPower, n = 1024, tab = new Float64Array(n + 1);
@@ -668,37 +679,38 @@ function fadeUp(el, p, dy) { const e = E.ui(p); el.style.opacity = e.toFixed(3);
 // кривой позади самолёта (не история кадров), поэтому не дрожит.
 function flightCurve(PM, t) {
   const ff = SETTINGS.firstFlight, rt = ff.route, p = SETTINGS.places[ff.key];
-  const s = [L.lcx + (LOGO_LINE.x1 - 360) * L.ls, L.lcy + (LOGO_LINE.y - 359.6) * L.ls];
-  // цель полёта — где страна окажется в момент прилёта (камера к этому моменту уже в финале): кривая неподвижна,
-  // самолёт садится точно в появляющуюся точку; после прилёта хвост следа идёт за живой точкой (в момент прилёта они совпадают)
-  let e;
+  // концы — где RU и страна окажутся в момент прилёта (камера уже в финале): кривая не дёргается вслед за камерой.
+  // Старт — центр логотипа (это RU); за время полёта он плавно переезжает в точку RU на планете, так след
+  // к прилёту становится линией RU → LT. После прилёта концы идут за живыми точками (в момент прилёта совпадают).
+  const ru = SETTINGS.places.RU, P3 = (pp, P) => P(Math.cos(pp.lat * RAD), Math.sin(pp.lat * RAD), pp.lon);
+  let e, r;
   if (t <= T.firstFlight[1]) {
     const c = camera(T.firstFlight[1]), Pf = project(c.lat0, c.lon0, c.R, c.cx, c.cy, c.roll);
     const mo = TUNE.on ? TUNE.mark : SETTINGS.final.on ? SETTINGS.final.markersOffsetPx : [0, 0];
-    e = Pf(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon); e[0] += mo[0]; e[1] += mo[1];
-  } else e = PM(Math.cos(p.lat * RAD), Math.sin(p.lat * RAD), p.lon);
+    e = P3(p, Pf); e[0] += mo[0]; e[1] += mo[1]; r = P3(ru, Pf); r[0] += mo[0]; r[1] += mo[1];
+  } else { e = P3(p, PM); r = P3(ru, PM); }
+  const w = smooth(prog(t, T.firstFlight));
+  const s = [lerp(L.lcx, r[0], w), lerp(L.lcy, r[1], w)];
   const c1 = [s[0] + rt.c1[0] * W, s[1] + rt.c1[1] * H], c2 = [e[0] + rt.c2[0] * W, e[1] + rt.c2[1] * H];
   const B = u => { const v = 1 - u; return [v*v*v*s[0] + 3*v*v*u*c1[0] + 3*v*u*u*c2[0] + u*u*u*e[0], v*v*v*s[1] + 3*v*v*u*c1[1] + 3*v*u*u*c2[1] + u*u*u*e[1]]; };
   const D = u => { const v = 1 - u; return [3*v*v*(c1[0]-s[0]) + 6*v*u*(c2[0]-c1[0]) + 3*u*u*(e[0]-c2[0]), 3*v*v*(c1[1]-s[1]) + 6*v*u*(c2[1]-c1[1]) + 3*u*u*(e[1]-c2[1])]; };
   return { B, D };
 }
-function drawFirstFlight(t, PM) {
+function drawFirstFlight(t, PM, proj3) {
   const ff = SETTINGS.firstFlight, { B, D } = flightCurve(PM, t);
-  const u = E.flight(prog(t, T.firstFlight));
-  // след: от u − trail до u; после прилёта хвост догоняет голову (втягивается в страну)
-  const retract = E.lineFade(prog(t, [T.firstFlight[1], T.firstFlight[1] + ff.trailRetractMs]));
-  const tail = Math.max(0, u - ff.trail) + (u - Math.max(0, u - ff.trail)) * retract;
-  const n = 32;
-  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineCap = 'butt';
-  let prev = B(tail);
-  for (let i = 1; i <= n; i++) {
-    const k = i / n, uu = tail + (u - tail) * k, q = B(uu);
-    ctx.strokeStyle = `rgba(255,255,255,${(0.85 * k ** 1.6 * (1 - retract * 0.3)).toFixed(3)})`;
-    ctx.lineWidth = ff.trailWidth * (0.35 + 0.65 * k) * dpr;
-    ctx.beginPath(); ctx.moveTo(prev[0] * dpr, prev[1] * dpr); ctx.lineTo(q[0] * dpr, q[1] * dpr); ctx.stroke();
-    prev = q;
+  const u = E.flight(prog(t, T.firstFlight)), n = 48;
+  // след — вся пройденная часть той же кривой, как дуга (не исчезает); после прилёта перетекает в дугу RU → LT на планете
+  const km = E.lineFade(prog(t, T.ltArc)), arc = L.arcs.find(a => a.key === ff.key);
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    let q = B(u * i / n);
+    if (km > 0) { const g = proj3(arc.pts[Math.round(i / n * (arc.pts.length - 1))]); q = [lerp(q[0], g[0], km), lerp(q[1], g[1], km)]; }
+    pts.push(q);
   }
-  // самолёт: появляется у конца линии, нос по касательной (производная кривой — гладкая), гаснет на подлёте
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = SETTINGS.arcs.width * dpr;
+  ctx.beginPath(); ctx.moveTo(pts[0][0] * dpr, pts[0][1] * dpr); for (let i = 1; i <= n; i++) ctx.lineTo(pts[i][0] * dpr, pts[i][1] * dpr); ctx.stroke();
+  // самолёт: появляется в центре (RU), нос по касательной (производная кривой — гладкая), гаснет на подлёте
   const a = smooth(prog(t, [T.firstFlight[0], T.firstFlight[0] + 140])) * (1 - prog(t, [T.firstFlight[1] - 140, T.firstFlight[1] + 40]));
   if (a > 0) {
     const [x, y] = B(u), [dx, dy] = D(Math.min(0.999, Math.max(0.001, u)));
@@ -836,7 +848,7 @@ function render(t) {
       const first = ff.on && arc.key === ff.key; // эту страну уже «открыл» первый самолёт: дуга без самолётика
       const t0 = first ? T.ltArc[0] : T.arcs[0] + (j++) * SETTINGS.arcs.staggerMs;
       const t1 = first ? T.ltArc[1] : Math.min(T.arcs[1], t0 + SETTINGS.arcs.eachMs);
-      const p = E.arc(prog(t, [t0, t1]));
+      const p = first ? (t >= T.ltArc[1] ? 1 : 0) : E.arc(prog(t, [t0, t1]));
       arrived[arc.key] = first ? prog(t, [T.firstFlight[1] - 80, T.firstFlight[1] + 70]) : prog(t, [t1 - 80, t1 + 70]);
       if (p <= 0) continue;
       const n = arc.pts.length - 1, head = p * n;
@@ -915,7 +927,7 @@ function render(t) {
   }
 
   // ---- правка 11: первый самолёт со следом, поверх всего ----
-  if (ff.on && t >= T.firstFlight[0] && t < T.firstFlight[1] + ff.trailRetractMs) drawFirstFlight(t, PM);
+  if (ff.on && t >= T.firstFlight[0] && t < T.ltArc[1]) drawFirstFlight(t, PM, proj3);
 
   fadeUp(title, prog(t, T.title), 12);
   fadeUp(subtitle, prog(t, T.subtitle), 12);
@@ -1051,12 +1063,12 @@ const fields = [ // [ползунок, вывод, чтение, запись]
   ['tSens', 'oSens', () => SETTINGS.interact.sensitivity, v => { SETTINGS.interact.sensitivity = v; }],
   ['tResume', 'oResume', () => SETTINGS.interact.resumeDelayMs, v => { SETTINGS.interact.resumeDelayMs = v; }],
   // первый самолёт (правка 11): старт и длительность полёта двигают окно; прилёт = старт + длительность
-  ['tFStart', 'oFStart', () => T.firstFlight[0], v => { const d = T.firstFlight[1] - T.firstFlight[0]; T.firstFlight[0] = v; T.firstFlight[1] = v + d; }],
-  ['tFDur', 'oFDur', () => T.firstFlight[1] - T.firstFlight[0], v => { T.firstFlight[1] = T.firstFlight[0] + v; }],
-  ['tTrail', 'oTrail', () => SETTINGS.firstFlight.trail, v => { SETTINGS.firstFlight.trail = v; }],
+  ['tFL', 'oFL', () => SETTINGS.firstFlight.launchAtPulse, v => { SETTINGS.firstFlight.launchAtPulse = v; deriveFlightTimes(); }],
+  ['tFO', 'oFO', () => SETTINGS.firstFlight.othersAtFlight, v => { SETTINGS.firstFlight.othersAtFlight = v; deriveFlightTimes(); }],
+  ['tFDur', 'oFDur', () => T.firstFlight[1], v => { T.firstFlight[1] = v; deriveFlightTimes(); }],
   ['tMorph', 'oMorph', () => T.morph[1] - T.morph[0], v => { T.morph[1] = T.morph[0] + v; }],
 ];
-const FLIGHT_DEFAULTS = { ff: [...T.firstFlight], morph: [...T.morph], trail: SETTINGS.firstFlight.trail };
+const FLIGHT_DEFAULTS = { arrive: T.firstFlight[1], morph: [...T.morph], la: SETTINGS.firstFlight.launchAtPulse, oa: SETTINGS.firstFlight.othersAtFlight };
 const INT_DEFAULTS = { ...SETTINGS.interact };
 const DOT_DEFAULTS = { step: SETTINGS.globe.dotStepDeg, r: SETTINGS.globe.dotRadius };
 const fmt = v => (Math.abs(v) < 10 ? Math.round(v * 100) / 100 : Math.round(v * 10) / 10).toString();
@@ -1075,9 +1087,8 @@ function tuneReset() {
   if (g0.dotStepDeg !== DOT_DEFAULTS.step) { g0.dotStepDeg = DOT_DEFAULTS.step; buildDots(); }
   g0.dotRadius = DOT_DEFAULTS.r;
   Object.assign(SETTINGS.interact, INT_DEFAULTS);
-  T.firstFlight[0] = FLIGHT_DEFAULTS.ff[0]; T.firstFlight[1] = FLIGHT_DEFAULTS.ff[1];
-  T.morph[0] = FLIGHT_DEFAULTS.morph[0]; T.morph[1] = FLIGHT_DEFAULTS.morph[1];
-  SETTINGS.firstFlight.trail = FLIGHT_DEFAULTS.trail;
+  T.firstFlight[1] = FLIGHT_DEFAULTS.arrive; T.morph[0] = FLIGHT_DEFAULTS.morph[0]; T.morph[1] = FLIGHT_DEFAULTS.morph[1];
+  SETTINGS.firstFlight.launchAtPulse = FLIGHT_DEFAULTS.la; SETTINGS.firstFlight.othersAtFlight = FLIGHT_DEFAULTS.oa; deriveFlightTimes();
   TUNE.R = null; resize(); // авто-подгонка
   Object.assign(TUNE, { R: L.auto.R, cx: L.auto.cx, cy: L.auto.cy, lat: L.auto.lat, lon: L.auto.lon, tilt: SETTINGS.globe.axisTiltDeg, mark: [0, 0] });
   tuneApply();
@@ -1108,8 +1119,9 @@ function tuneBlock() {
     `  resumeDelayMs: ${SETTINGS.interact.resumeDelayMs},              // пауза до возобновления фонового вращения, мс`,
     `},`,
     `firstFlight: {`,
-    `  window: [${T.firstFlight[0]}, ${T.firstFlight[1]}],        // вылет и прилёт в LT, мс`,
-    `  trail: ${SETTINGS.firstFlight.trail},                     // длина следа, доля маршрута`,
+    `  launchAtPulse: ${SETTINGS.firstFlight.launchAtPulse},             // вылет: доля прорисовки пульса`,
+    `  othersAtFlight: ${SETTINGS.firstFlight.othersAtFlight},            // остальные: доля пути первого`,
+    `  arriveMs: ${T.firstFlight[1]},                  // прилёт в LT (вылет ${T.firstFlight[0]} мс)`,
     `},`,
     `timeline.morph: [${T.morph[0]}, ${T.morph[1]}],         // появление планеты (встраивание точек), мс`,
   ].join('\n');
