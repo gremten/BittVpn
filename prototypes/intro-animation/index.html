@@ -84,7 +84,7 @@ body.tuning canvas { cursor: grab; touch-action: none; }
   <div class="hint2">Первый самолёт и появление планеты — смотреть кнопкой «Играть».</div>
   <div class="row"><label for="tFL">Вылет: доля пульса</label><input type="range" id="tFL" min="0.3" max="1" step="0.01"><output id="oFL"></output></div>
   <div class="row"><label for="tFO">Остальные: доля пути</label><input type="range" id="tFO" min="0.3" max="1" step="0.01"><output id="oFO"></output></div>
-  <div class="row"><label for="tFDur">Прилёт в LT, мс</label><input type="range" id="tFDur" min="1800" max="3200" step="10"><output id="oFDur"></output></div>
+  <div class="row"><label for="tFDur">Прилёт первого, мс</label><input type="range" id="tFDur" min="1800" max="3200" step="10"><output id="oFDur"></output></div>
   <div class="row"><label for="tMorph">Появление планеты, мс</label><input type="range" id="tMorph" min="400" max="1600" step="10"><output id="oMorph"></output></div>
   <div class="actions">
     <button class="primary" id="tCopy" type="button">Скопировать значения</button>
@@ -180,7 +180,7 @@ const SETTINGS = {
     launchAtPulse: 1.0,            // вылет, когда линия пульса прорисована на 100% (правка 13)
     othersAtFlight: 0.75,          // остальные самолёты вылетают, когда первый прошёл 75% пути
     on: true,
-    key: 'LT',                     // страна прилёта
+    key: 'JP',                     // страна прилёта (автор: Япония — чтобы расстояние было нормальным)
     // правка 14: маршрут — дуга RU → LT по сфере (большой круг, приподнята как остальные дуги), в координатах планеты
     size: 14,                      // px, длина самолёта
   },
