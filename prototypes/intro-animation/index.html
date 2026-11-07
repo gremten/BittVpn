@@ -76,6 +76,8 @@ body.tuning canvas { cursor: grab; touch-action: none; }
   <div class="row"><label for="tTilt">Наклон оси, °</label><input type="range" id="tTilt" min="-45" max="45" step="0.5"><output id="oTilt"></output></div>
   <div class="row"><label for="tMx">Страны X, px</label><input type="range" id="tMx" min="-150" max="150" step="1"><output id="oMx"></output></div>
   <div class="row"><label for="tMy">Страны Y, px</label><input type="range" id="tMy" min="-150" max="150" step="1"><output id="oMy"></output></div>
+  <div class="row"><label for="tStep">Шаг точек, °</label><input type="range" id="tStep" min="1.2" max="5" step="0.1"><output id="oStep"></output></div>
+  <div class="row"><label for="tDot">Размер точек, px</label><input type="range" id="tDot" min="0.4" max="4" step="0.05"><output id="oDot"></output></div>
   <div class="actions">
     <button class="primary" id="tCopy" type="button">Скопировать значения</button>
     <button id="tReset" type="button">Сбросить</button>
@@ -277,8 +279,11 @@ const isLand = (lat, lon) => {
 };
 
 // точки: ряды вдоль параллелей, шаг по долготе растёт к полюсам (равная плотность); суша и океан
-const step = SETTINGS.globe.dotStepDeg;
-const dots = [];
+// сетка строится функцией: панель подгонки меняет шаг на лету
+let step, dots, N;
+function buildDots() {
+step = SETTINGS.globe.dotStepDeg;
+dots = [];
 for (let lat = -84 + step / 2; lat < 86; lat += step) {
   const n = Math.max(1, Math.round(360 * Math.cos(lat * RAD) / step));
   for (let j = 0; j < n; j++) {
@@ -306,7 +311,9 @@ for (let lat = -84 + step / 2; lat < 86; lat += step) {
   });
   lone.forEach(i => { dots[i].land = false; });
 }
-const N = dots.length;
+N = dots.length;
+}
+buildDots();
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -350,6 +357,7 @@ const bC = document.getElementById('btnContinue');
 const bS = document.getElementById('btnSkip');
 
 let L = {};
+const fitCache = { key: null, best: null };
 // служебная подгонка (панель #tune): абсолютные значения для текущего экрана; null — авто-подгонка
 const TUNE = { on: false, R: null, cx: null, cy: null, lat: null, lon: null, tilt: null, mark: [0, 0], auto: null };
 function labelBox(at, x, y, w, h) {
@@ -399,7 +407,10 @@ function layout() {
     }
     return [x0, x1];
   };
-  let best = null;
+  // подбор ракурса не зависит от сетки точек: кэш по экрану и настройкам подбора (ресайз после смены шага — быстрый)
+  const fitKey = JSON.stringify([W, H, textTop, g.axisTiltDeg, g.finalView, fit, SETTINGS.label, lsz]);
+  let best = fitCache.key === fitKey ? fitCache.best : null;
+  if (!best)
   for (const minZ of [fit.minZ, 0.15]) {
   if (best) break;
   for (let lat0 = fit.lat[0]; lat0 <= fit.lat[1]; lat0 += fit.step) for (let lon0 = fit.lon[0]; lon0 <= fit.lon[1]; lon0 += fit.step) {
@@ -426,6 +437,7 @@ function layout() {
   }
   }
   if (!best) best = { Rr: Rfit * fit.minRadiusShare, lat0: g.finalView[0], lon0: g.finalView[1], combo: Object.fromEntries(keys.map(k => [k, SETTINGS.places[k].at])), ext: [-W / 2, W / 2] };
+  fitCache.key = fitKey; fitCache.best = best;
   const Rf = best.Rr;
   // по X: метки с подписями — по центру экрана (шар может уходить за края)
   const cxf = W / 2;
@@ -822,8 +834,13 @@ const fields = [ // [ползунок, вывод, чтение, запись]
   ['tTilt', 'oTilt', () => TUNE.tilt, v => { TUNE.tilt = v; }],
   ['tMx', 'oMx', () => TUNE.mark[0], v => { TUNE.mark[0] = v; }],
   ['tMy', 'oMy', () => TUNE.mark[1], v => { TUNE.mark[1] = v; }],
+  // плотность: шаг сетки, сетка суши и океана пересчитывается сразу (подбор ракурса из кэша)
+  ['tStep', 'oStep', () => SETTINGS.globe.dotStepDeg, v => { SETTINGS.globe.dotStepDeg = v; buildDots(); resize(); }],
+  // размер: радиус точки на переднем крае; ниже minDotRadius точка не мельчает, а гаснет (против муара)
+  ['tDot', 'oDot', () => SETTINGS.globe.dotRadius, v => { SETTINGS.globe.dotRadius = v; }],
 ];
-const fmt = v => (Math.round(v * 10) / 10).toString();
+const DOT_DEFAULTS = { step: SETTINGS.globe.dotStepDeg, r: SETTINGS.globe.dotRadius };
+const fmt = v => (Math.abs(v) < 10 ? Math.round(v * 100) / 100 : Math.round(v * 10) / 10).toString();
 function tuneSync() {
   for (const [sId, oId, get] of fields) { const v = get(); $(sId).value = v; $(oId).textContent = fmt(v); }
   $('tOut').value = tuneBlock();
@@ -835,6 +852,9 @@ function tuneApply() {
   cancelAnimationFrame(raf); render(T.end); tuneSync();
 }
 function tuneReset() {
+  const g0 = SETTINGS.globe;
+  if (g0.dotStepDeg !== DOT_DEFAULTS.step) { g0.dotStepDeg = DOT_DEFAULTS.step; buildDots(); }
+  g0.dotRadius = DOT_DEFAULTS.r;
   TUNE.R = null; resize(); // авто-подгонка
   Object.assign(TUNE, { R: L.auto.R, cx: L.auto.cx, cy: L.auto.cy, lat: L.auto.lat, lon: L.auto.lon, tilt: SETTINGS.globe.axisTiltDeg, mark: [0, 0] });
   tuneApply();
@@ -854,6 +874,11 @@ function tuneBlock() {
     `  centerYOfFree: ${r3((TUNE.cy - g.topInset) / Hf)},            // (центр по Y − верхний отступ) / Hf`,
     `},`,
     `markersOffsetPx: [${r1(TUNE.mark[0])}, ${r1(TUNE.mark[1])}],   // общий сдвиг точек и подписей стран`,
+    `dots: {`,
+    `  dotStepDeg: ${r1(g.dotStepDeg * 10) / 10},                 // шаг сетки точек, ° (плотность)`,
+    `  dotRadius: ${Math.round(g.dotRadius * 100) / 100},                  // радиус точки на переднем крае, px`,
+    `  minDotRadius: ${g.minDotRadius},              // мельче не рисуется, вместо этого гаснет`,
+    `},`,
   ].join('\n');
 }
 // режим подгонки: tuneActive — шар можно тянуть; панель при этом может быть свёрнута (значения сохраняются)
