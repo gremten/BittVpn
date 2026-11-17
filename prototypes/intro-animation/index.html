@@ -294,7 +294,7 @@ const SETTINGS = {
     on: true,
     timeline: {
       start:      5000,        // старт: 1.4 с паузы после конца заставки (3600 мс), чтобы исходный кадр прочитался
-      spin:       [0, 1900],   // 1. планета прокручивается справа налево, ось наклоняется (мягкий старт и долгий выбег)
+      spin:       [0, 1670],   // 1. поворот планеты: то же вращение, что у заставки (E.spin: разгон с нуля за 18%, торможение (1−u)² до нуля, тот же 1670 мс), направление то же — справа налево
       zoom:       [300, 2600], // камера подлетает к десяти точкам: тот же мягкий ход, что у отдаления в заставке (pullOut)
       markOut:    [0, 450],    // дуги, самолётики, подписи стран и красная точка RU гаснут
       uiOut:      [0, 380],    // «Добро пожаловать», подзаголовок и кнопки заставки гаснут
@@ -312,7 +312,6 @@ const SETTINGS = {
       end:        0,           // считается сам: конец последней анимации + 50 мс
     },
     ease: {
-      spin:       [0.45, 0, 0.2, 1],   // с нулевой скорости, долгое торможение
       zoom:       [0.45, 0, 0.25, 1],  // как pullOut заставки: мягкий старт с нуля, долгое торможение, без пика скорости
       tilt:       [0.4, 0, 0.2, 1],
       markOut:    [0.4, 0, 0.6, 1],
@@ -323,7 +322,7 @@ const SETTINGS = {
       grow:       [0.25, 0, 0.1, 1],   // точка → чип
       text:       [0.25, 0, 0.1, 1],
     },
-    spin: { deg: 40, tiltDeg: 12 },    // поворот поверхности влево, ° (пик ≈ 40°/с, меньше предела автора 60°/с); наклон оси: полюс вправо, поверхность идёт влево-вверх
+    spin: { deg: 36, tiltDeg: 8 },     // поворот как в заставке (≈36°, пик ≈ 48°/с, предел автора 60°/с), поверхность идёт справа налево; наклон оси — небольшой, по просьбе автора (в заставке наклон отменён, правка 7): полюс вправо, поверхность идёт влево-вверх
     flight: { // 10 точек стоят в планете пирамидкой 3-2-3-2 (как чипы) с ровными шагами и плавно расходятся по реальным позициям чипов
       gridHintDeg: 2.4,                // шаг сетки точек планеты для подбора ближайшей яркой точки (синхронно с globe.dotStepDeg)
       zoomFactor: 1.5,                 // во сколько раз камера приближает планету к концу подлёта (пирамидка 3-2-3-2 раздвигается до шага чипов)
@@ -859,7 +858,7 @@ function goalsDom(t) {
 // стадия «цели»: поворот поверхности справа налево + наклон оси
 function goalsSpin(t) {
   if (!G.on || t <= GT.start) return { lon: 0, tilt: 0 };
-  const e = EG.spin(prog(t, gRel(GT.spin)));
+  const e = E.spin(prog(t, gRel(GT.spin)));
   return { lon: G.spin.deg * e, tilt: G.spin.tiltDeg * EG.tilt(prog(t, gRel(GT.spin))) };
 }
 const GZ = { dx: 0, dy: 0 }; // сдвиг центра при подлёте: центр планеты приходит в центр группы чипов
@@ -1255,7 +1254,7 @@ const fontsReady = Promise.all(['500 32px "Martian Grotesk"', '400 16px "Golos U
 ])).catch(() => {});
 window.intro.ready = fontsReady.then(() => {
   resize();
-  if (REDUCED) { render(T.end); return; }
+  if (REDUCED) { render(G.on ? gEndAbs() : T.end); return; }
   if (FIXED_T != null) { render(FIXED_T); return; }
   if (RECORD) {
     console.log('record: intro.renderFrame(i), кадров ' + window.intro.frameCount());
@@ -1272,12 +1271,12 @@ window.intro.ready = fontsReady.then(() => {
 window.addEventListener('keydown', e => { if ((e.key === 'r' || e.key === 'к') && !RECORD) play(); });
 const replay = document.getElementById('replay');
 if (RECORD || FIXED_T != null) replay.hidden = true;
-replay.addEventListener('click', () => { if (REDUCED) { render(T.end); return; } play(); });
+replay.addEventListener('click', () => { if (REDUCED) { render(G.on ? gEndAbs() : T.end); return; } play(); });
 
 // ---- правка 10: жест по планете ----
 // Зона — только диск планеты выше блока текста (текст и кнопки — DOM поверх и касания не отдают). Жест работает
 // только после вступления, не в режимах записи/стоп-кадра и не во время подгонки (#tune).
-const introDone = () => REDUCED || ((window.__lastT ?? 0) >= T.end && !(G.on && (window.__lastT ?? 0) > GT.start));
+const introDone = () => (REDUCED && !G.on) || ((window.__lastT ?? 0) >= T.end && !(G.on && (window.__lastT ?? 0) > GT.start));
 function onPlanet(x, y) {
   const cam = camera(REDUCED ? T.end : window.__lastT ?? T.end);
   return y < L.textTop && Math.hypot(x - cam.cx, y - cam.cy) <= cam.R * 1.02;
