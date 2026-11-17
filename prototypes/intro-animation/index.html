@@ -65,7 +65,9 @@ body.tuning canvas { cursor: grab; touch-action: none; }
 .chip__t { display: block; }
 .goals__btn { position: absolute; left: 20px; right: 20px; bottom: calc(20px + var(--safe-bottom)); height: 56px; padding: 14px 16px; border: 0; border-radius: 999px;
   background: #2D3138; color: #9499A1; font: 400 16px/20px "Golos UI", sans-serif; opacity: 0; will-change: transform, opacity; cursor: default; }
-.goals__btn:not(:disabled) { cursor: pointer; }
+.goals__btn { transition: background-color .18s cubic-bezier(.25,0,.1,1), color .18s cubic-bezier(.25,0,.1,1), transform .12s cubic-bezier(.25,0,.1,1); }
+.goals__btn.ready { background: #fff; color: #0A0C0F; cursor: pointer; pointer-events: auto; } /* включена: выбрано 3–4 цели; вид как primary Button дизайн-системы (первый экран Figma 4845:2704, bg/action/primary) */
+.goals__btn.ready.pressed { transform: scale(0.985); }
 .goals.live .chip.live { pointer-events: auto; }
 </style>
 </head>
@@ -118,7 +120,7 @@ body.tuning canvas { cursor: grab; touch-action: none; }
   <div class="row"><label for="tFDur">Прилёт первого, мс</label><input type="range" id="tFDur" min="1800" max="3200" step="10"><output id="oFDur"></output></div>
   <div class="row"><label for="tMorph">Появление планеты, мс</label><input type="range" id="tMorph" min="400" max="1600" step="10"><output id="oMorph"></output></div>
   <div class="hint2">Стадия «цели» (после заставки): смотреть кнопками кадров или «Играть».</div>
-  <div class="row"><label for="tGStart">Старт стадии, мс</label><input type="range" id="tGStart" min="3600" max="9000" step="50"><output id="oGStart"></output></div>
+  <div class="row"><label for="tGStart">Нажатие «Продолжить», мс</label><input type="range" id="tGStart" min="3600" max="9000" step="50"><output id="oGStart"></output></div>
   <div class="row"><label for="tGSpin">Поворот планеты, °</label><input type="range" id="tGSpin" min="0" max="120" step="1"><output id="oGSpin"></output></div>
   <div class="row"><label for="tGTilt">Наклон оси, °</label><input type="range" id="tGTilt" min="-40" max="40" step="0.5"><output id="oGTilt"></output></div>
   <div class="row"><label for="tGZoom">Подлёт камеры, ×</label><input type="range" id="tGZoom" min="1" max="2.5" step="0.05"><output id="oGZoom"></output></div>
@@ -287,13 +289,13 @@ const SETTINGS = {
 
   // ---------------------------------------------------------------------
   // СТАДИЯ «ЦЕЛИ» (правка 15): продолжение после заставки. Всё, что выше, не менялось.
-  // Окна и времена ниже — в мс ОТНОСИТЕЛЬНО timeline.start; сам start — абсолютный (от 0 мс заставки, T.end = 3600).
+  // Окна и времена ниже — в мс ОТНОСИТЕЛЬНО момента нажатия «Продолжить» (GT.start; в записи и стоп-кадре = pressAt, абсолютное время от 0 мс заставки).
   // Размеры, тексты, цвета — из Figma Gv2wmt6EKOpI9XlLn8yuGg: исходный кадр 4845:2704, итоговый 4845:2761 (кадр 402×874).
   // ---------------------------------------------------------------------
   goals: {
     on: true,
     timeline: {
-      start:      5000,        // старт: 1.4 с паузы после конца заставки (3600 мс), чтобы исходный кадр прочитался
+      pressAt:    4400,        // нажатие «Продолжить»: стадия стартует ПО НАЖАТИЮ (в живом просмотре без нажатия не запускается). В #record, #t-N, #tune, reduced-motion нажатие имитируется в этот момент (за 120 мс кнопка «вдавливается»)
       spin:       [0, 1670],   // 1. поворот планеты: то же вращение, что у заставки (E.spin: разгон с нуля за 18%, торможение (1−u)² до нуля, тот же 1670 мс), направление то же — справа налево
       zoom:       [300, 2600], // камера подлетает к десяти точкам: тот же мягкий ход, что у отдаления в заставке (pullOut)
       markOut:    [0, 450],    // дуги, самолётики, подписи стран и красная точка RU гаснут
@@ -339,7 +341,8 @@ const SETTINGS = {
     },
     maxSelected: 4,                    // «Можешь выбрать до 4 целей»; на лимите остальные чипы неактивны (решение автора, ЖР §73)
     lockedOpacity: 0.4,
-    texts: { title: 'Для чего тебе нужен ВПН?', sub: 'Можешь выбрать до 4 целей', button: 'Выбери хотя бы одну цель' },
+    minSelected: 3,                    // решение автора: кнопка включена при 3–4 выбранных целях, при 0–2 отключена
+    texts: { title: 'Для чего тебе нужен ВПН?', sub: 'Можешь выбрать до 4 целей', button: 'Выбери хотя бы одну цель', buttonReady: 'Подобрать' }, // button — текст отключённой кнопки из Figma 4845:2761 как есть
     rows: [                            // чипы как в Figma (повторы «Шоппинг», «Низкий пинг», «Нейросети» — рабочий текст макета)
       ['Сервисы РФ', 'Звонки', 'Шоппинг'],
       ['Низкий пинг', 'Нейросети'],
@@ -386,6 +389,7 @@ const AUTOPLAY = params.get('autoplay') === '1' || hash === 'record-autoplay';
 const TUNE_HASH = hash === 'tune';
 const FIXED_T = params.has('t') ? parseFloat(params.get('t')) : hashT ? +hashT[1] : null;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MANUAL_START = !RECORD && FIXED_T == null && !REDUCED; // живой просмотр: стадия «цели» стартует по нажатию «Продолжить»
 const T = SETTINGS.timeline;
 // правка 12: моменты вылетов считаются из долей (SETTINGS.firstFlight), вызывается после создания кривых E
 function deriveFlightTimes() {
@@ -419,7 +423,9 @@ function deriveGoalsTimes() {
   GT.end = Math.round(Math.max(GT.button[1], GT.fly0 + (n - 1) * GT.staggerMs + GT.flyMs - GT.growLead + Math.max(GT.growMs, GT.textAfter * GT.growMs + GT.textMs)) + 50);
 }
 deriveGoalsTimes();
+GT.start = GT.pressAt; // момент нажатия «Продолжить»; в живом просмотре до нажатия — Infinity (play())
 const gEndAbs = () => GT.start + GT.end;
+const gEndRec = () => GT.pressAt + GT.end; // конец стадии в режимах записи
 const gRel = r => [GT.start + r[0], GT.start + r[1]];
 deriveFlightTimes();
 // поворот: интеграл скорости v(τ) = smoothstep(τ/a) до a, затем ((1−τ)/(1−a))^p; нормирован к 1
@@ -543,20 +549,26 @@ function syncChips() {
     c.el.setAttribute('aria-pressed', on ? 'true' : 'false'); if (lock) c.el.setAttribute('aria-disabled', 'true'); else c.el.removeAttribute('aria-disabled');
   });
 }
-// Кнопка внизу всегда disabled: логика включения автором не задана (вопрос в ответе автору).
-gBtn.disabled = true;
+// Кнопка внизу: включена при 3–4 выбранных целях (решение автора), иначе disabled с текстом из Figma.
+function syncBtn() {
+  const ok = selected.size >= G.minSelected && selected.size <= G.maxSelected;
+  gBtn.disabled = !ok; gBtn.classList.toggle('ready', ok); gBtn.textContent = ok ? G.texts.buttonReady : G.texts.button;
+}
+syncBtn();
+['pointerdown'].forEach(e => gBtn.addEventListener(e, () => { if (!gBtn.disabled) gBtn.classList.add('pressed'); }));
+['pointerup', 'pointerleave', 'pointercancel'].forEach(e => gBtn.addEventListener(e, () => gBtn.classList.remove('pressed')));
 chipEls.forEach((c, i) => {
   c.el.addEventListener('click', () => {
     if (!c.el.classList.contains('live')) return;
     if (selected.has(i)) selected.delete(i);
     else if (selected.size < G.maxSelected) selected.add(i);
     else return;
-    syncChips();
+    syncChips(); syncBtn();
   });
   c.el.addEventListener('pointerdown', () => { if (!c.el.classList.contains('locked')) c.el.classList.add('pressed'); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => c.el.addEventListener(e, () => c.el.classList.remove('pressed')));
 });
-function goalsReset() { selected.clear(); syncChips(); goalsStopped = false; }
+function goalsReset() { selected.clear(); syncChips(); syncBtn(); goalsStopped = false; }
 const GL = { chipOf: null, rho: null }; // выбор точек планеты под чипы, пересчитывается в layout()
 const GTR = []; // следы точек-чипов последнего кадра (для покадровой проверки)
 const CF = new Float32Array(chipEls.length);
@@ -778,7 +790,8 @@ function goalsPick() {
   if (!G.on || !chipEls.length || !chipEls[0].w) return;
   const n = chipEls.length, fl = G.flight, lo = G.layout;
   const chipOf = new Int16Array(N).fill(-1), rho = new Float32Array(N), pos = new Float32Array(N * 3);
-  const cam = cameraBase(GT.start + GT.spin[1]); // планета после поворота, до подлёта
+  const s0 = isFinite(GT.start) ? GT.start : GT.pressAt; // до нажатия раскладка считается по плановому моменту
+  const cam = cameraBase(s0 + GT.spin[1]); // планета после поворота, до подлёта
   const Z = fl.zoomFactor;
   const P = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy, cam.roll);
   const land = [], any = [];
@@ -811,7 +824,7 @@ function goalsPick() {
     c.sgn = Math.hypot(mx + nx - cam.cx, my + ny - cam.cy) >= Math.hypot(mx - nx - cam.cx, my - ny - cam.cy) ? 1 : -1;
   });
   chipEls.forEach((c, i) => {
-    c.t0 = GT.start + GT.fly0 + i * GT.staggerMs; c.tArr = c.t0 + GT.flyMs; c.tg0 = c.tArr - GT.growLead;
+    c.t0 = s0 + GT.fly0 + i * GT.staggerMs; c.tArr = c.t0 + GT.flyMs; c.tg0 = c.tArr - GT.growLead;
     c.tDone = c.tg0 + Math.max(GT.growMs, GT.textAfter * GT.growMs + GT.textMs);
   });
   GL.chipOf = chipOf; GL.rho = rho;
@@ -1186,6 +1199,7 @@ function render(t) {
   fadeUp(subtitle, prog(t, T.subtitle), 12);
   fadeUp(bC, prog(t, T.btnContinue), 16);
   fadeUp(bS, prog(t, T.btnSkip), 16);
+  if (G.on && !MANUAL_START && isFinite(GT.start)) bC.classList.toggle('pressed', t >= GT.start - 120 && t <= GT.start); // имитация нажатия в записи
   if (G.on && t > GT.start) { // стадия «цели»: элементы заставки гаснут
     const o = 1 - EG.uiOut(prog(t, gRel(GT.uiOut)));
     for (const el of [title, subtitle, bC, bS]) el.style.opacity = (parseFloat(el.style.opacity) * o).toFixed(3);
@@ -1200,11 +1214,16 @@ function render(t) {
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => b.addEventListener(e, () => b.classList.remove('pressed')));
 });
 
+// нажатие «Продолжить» запускает стадию «цели»: кнопки и текст заставки гаснут, планета начинает поворот без паузы
+bC.addEventListener('click', () => {
+  if (!G.on || !MANUAL_START || isFinite(GT.start) || !ui.classList.contains('live')) return;
+  GT.start = window.__lastT ?? T.uiLive; goalsPick();
+});
 let start = 0, raf = 0;
 function play() {
   cancelAnimationFrame(raf); start = performance.now();
   Object.assign(INT, { taken: false, dragging: false, lon: 0, lat: 0, vLon: 0, vLat: 0, idleDeg: 0, idleK: 1, still: 0, last: null });
-  goalsReset();
+  goalsReset(); if (G.on && MANUAL_START) GT.start = Infinity;
   let prev = 0;
   const loop = (now) => {
     const dt = prev ? Math.min(0.05, (now - prev) / 1000) : 0; prev = now;
@@ -1229,9 +1248,9 @@ function reducedLoop() {
 window.intro = {
   settings: SETTINGS,
   fps: SETTINGS.fps,
-  get durationMs() { return (G.on ? gEndAbs() : T.end) + 500; },
-  frameCount: () => Math.ceil(((G.on ? gEndAbs() : T.end) + 500) / 1000 * SETTINGS.fps) + 1,
-  goalsInfo() { return { start: GT.start, end: gEndAbs(), chips: chipEls.map(c => ({ label: c.label, x: c.x, y: c.y, w: c.w, h: c.h, cx: c.cx, cy: c.cy, t0: c.t0, tArr: c.tArr, tDone: c.tDone, dot: c.dot })) }; },
+  get durationMs() { return (G.on ? gEndRec() : T.end) + 500; },
+  frameCount: () => Math.ceil(((G.on ? gEndRec() : T.end) + 500) / 1000 * SETTINGS.fps) + 1,
+  goalsInfo() { return { start: isFinite(GT.start) ? GT.start : GT.pressAt, end: isFinite(GT.start) ? gEndAbs() : gEndRec(), chips: chipEls.map(c => ({ label: c.label, x: c.x, y: c.y, w: c.w, h: c.h, cx: c.cx, cy: c.cy, t0: c.t0, tArr: c.tArr, tDone: c.tDone, dot: c.dot })) }; },
   goalsTrace() { return GTR.map(o => o && { ...o }); },
   selected() { return [...selected]; },
   renderFrame(i) { render(i * 1000 / SETTINGS.fps); },
@@ -1250,7 +1269,7 @@ window.intro = {
 window.addEventListener('resize', () => { resize(); if (RECORD || FIXED_T != null || REDUCED || goalsStopped) render(window.__lastT ?? T.end); });
 const fontsReady = Promise.all(['500 32px "Martian Grotesk"', '400 16px "Golos UI"', '500 16px "Golos UI"', '20px "Nothing Font"'].map(f => document.fonts.load(f)).concat([
   document.fonts.load('400 20px "Martian Grotesk"', G.texts.title),
-  document.fonts.load('400 16px "Golos UI"', [G.texts.sub, G.texts.button, ...G.rows.flat()].join(' ')),
+  document.fonts.load('400 16px "Golos UI"', [G.texts.sub, G.texts.button, G.texts.buttonReady, ...G.rows.flat()].join(' ')),
 ])).catch(() => {});
 window.intro.ready = fontsReady.then(() => {
   resize();
@@ -1336,14 +1355,14 @@ const fields = [ // [ползунок, вывод, чтение, запись]
   ['tMorph', 'oMorph', () => T.morph[1] - T.morph[0], v => { T.morph[1] = T.morph[0] + v; }],
 ];
 const gfields = [ // стадия «цели»
-  ['tGStart', 'oGStart', () => GT.start, v => { GT.start = v; }],
+  ['tGStart', 'oGStart', () => GT.pressAt, v => { GT.pressAt = v; GT.start = v; }],
   ['tGSpin', 'oGSpin', () => G.spin.deg, v => { G.spin.deg = v; }],
   ['tGTilt', 'oGTilt', () => G.spin.tiltDeg, v => { G.spin.tiltDeg = v; }],
   ['tGZoom', 'oGZoom', () => G.flight.zoomFactor, v => { G.flight.zoomFactor = v; }],
   ['tGFly', 'oGFly', () => GT.flyMs, v => { GT.flyMs = v; }],
   ['tGStag', 'oGStag', () => GT.staggerMs, v => { GT.staggerMs = v; }],
 ];
-const GOALS_DEFAULTS = { zoom: G.flight.zoomFactor, start: GT.start, deg: G.spin.deg, tilt: G.spin.tiltDeg, fly: GT.flyMs, stag: GT.staggerMs };
+const GOALS_DEFAULTS = { zoom: G.flight.zoomFactor, start: GT.pressAt, deg: G.spin.deg, tilt: G.spin.tiltDeg, fly: GT.flyMs, stag: GT.staggerMs };
 function goalsTuneApply() { deriveGoalsTimes(); goalsPick(); cancelAnimationFrame(raf); render(window.__lastT ?? T.end); tuneSync(); }
 const FLIGHT_DEFAULTS = { arrive: T.firstFlight[1], morph: [...T.morph], la: SETTINGS.firstFlight.launchAtPulse, oa: SETTINGS.firstFlight.othersAtFlight };
 const INT_DEFAULTS = { ...SETTINGS.interact };
@@ -1367,7 +1386,7 @@ function tuneReset() {
   Object.assign(SETTINGS.interact, INT_DEFAULTS);
   T.firstFlight[1] = FLIGHT_DEFAULTS.arrive; T.morph[0] = FLIGHT_DEFAULTS.morph[0]; T.morph[1] = FLIGHT_DEFAULTS.morph[1];
   SETTINGS.firstFlight.launchAtPulse = FLIGHT_DEFAULTS.la; SETTINGS.firstFlight.othersAtFlight = FLIGHT_DEFAULTS.oa; deriveFlightTimes();
-  G.flight.zoomFactor = GOALS_DEFAULTS.zoom; GT.start = GOALS_DEFAULTS.start; G.spin.deg = GOALS_DEFAULTS.deg; G.spin.tiltDeg = GOALS_DEFAULTS.tilt; GT.flyMs = GOALS_DEFAULTS.fly; GT.staggerMs = GOALS_DEFAULTS.stag; deriveGoalsTimes();
+  G.flight.zoomFactor = GOALS_DEFAULTS.zoom; GT.pressAt = GOALS_DEFAULTS.start; GT.start = GT.pressAt; G.spin.deg = GOALS_DEFAULTS.deg; G.spin.tiltDeg = GOALS_DEFAULTS.tilt; GT.flyMs = GOALS_DEFAULTS.fly; GT.staggerMs = GOALS_DEFAULTS.stag; deriveGoalsTimes();
   TUNE.R = null; resize(); // авто-подгонка
   Object.assign(TUNE, { R: L.auto.R, cx: L.auto.cx, cy: L.auto.cy, lat: L.auto.lat, lon: L.auto.lon, tilt: SETTINGS.globe.axisTiltDeg, mark: [0, 0] });
   tuneApply();
@@ -1404,7 +1423,7 @@ function tuneBlock() {
     `},`,
     `timeline.morph: [${T.morph[0]}, ${T.morph[1]}],         // появление планеты (встраивание точек), мс`,
     `goals: {                                     // стадия «цели»`,
-    `  timeline: { start: ${GT.start}, flyMs: ${GT.flyMs}, staggerMs: ${GT.staggerMs} },   // конец стадии: ${gEndAbs()} мс`,
+    `  timeline: { pressAt: ${GT.pressAt}, flyMs: ${GT.flyMs}, staggerMs: ${GT.staggerMs} },   // конец стадии: ${gEndRec()} мс`,
     `  spin: { deg: ${G.spin.deg}, tiltDeg: ${G.spin.tiltDeg} },  flight: { zoomFactor: ${G.flight.zoomFactor} },`,
     `},`,
   ].join('\n');
@@ -1413,6 +1432,7 @@ function tuneBlock() {
 let tuneActive = false;
 function tuneShowPanel(show) { tunePanel.hidden = !show; tuneBtn.textContent = show ? 'Настройка' : 'Панель'; }
 function tuneOpen() {
+  GT.start = GT.pressAt; goalsPick(); // в подгонке нажатие «Продолжить» имитируется в pressAt
   TUNE.on = true; tuneActive = true; document.body.classList.add('tuning'); tuneShowPanel(true);
   if (TUNE.R == null) tuneReset(); else tuneApply();
 }
