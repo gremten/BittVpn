@@ -352,11 +352,6 @@ const SETTINGS = {
     },
     maxSelected: 4,                    // «Можешь выбрать до 4 целей»; на лимите остальные чипы неактивны (решение автора, ЖР §73)
     lockedOpacity: 0.4,
-    preRoll: {                         // если планету повернули так, что в центре мало суши (точек для «пирамидки» нет), перед стадией её плавно доворачивает к расчётному виду
-      ease: [0.45, 0, 0.8, 0.8],       // кривая Безье: плавный старт, более резкий (но не рывком) конец
-      minLandShare: 0.55,              // доворачивать, если доля суши в центре меньше этой доли от расчётного вида
-      baseMs: 450, msPerDeg: 14, minMs: 600, maxMs: 1400,
-    },
     minSelected: 3,                    // решение автора: кнопка включена при 3–4 выбранных целях, при 0–2 отключена
     texts: { title: 'Для чего тебе нужен ВПН?', sub: 'Можешь выбрать до 4 целей', button: 'Выбери хотя бы одну цель', buttonReady: 'Подобрать' }, // button — текст отключённой кнопки из Figma 4845:2761 как есть
     rows: [                            // чипы как в Figma (повторы «Шоппинг», «Низкий пинг», «Нейросети» — рабочий текст макета)
@@ -512,6 +507,8 @@ buildDots();
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0, dpr = 1;
+// Только размер холста (без пересчёта раскладки): на слабых устройствах на время стадии «цели» разрешение снижается, чтобы кадры не падали
+function applyDpr(v) { dpr = v; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
 function resize() {
   W = window.innerWidth; H = window.innerHeight;
   // Ограничиваем количество пикселей canvas на больших экранах и Retina.
@@ -859,21 +856,36 @@ function goalsPick() {
   const live = MANUAL_START && isFinite(GT.start) && INT.taken; // планету крутили: точки берём там, где она реально стоит
   const cam = live ? camera(s0 + GT.spin[1], true) : cameraBase(s0 + GT.spin[1]); // планета после поворота, до подлёта
   const P0 = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy, cam.roll);
-  for (let i = 0; i < N; i++) { const d = dots[i], q = P0(d.cl, d.sl, d.lon); rho[i] = q[2] > 0 ? clamp01(Math.hypot(q[0] - cam.cx, q[1] - cam.cy) / cam.R) : 1; }
   // Десять точек — соседние точки соседних рядов сетки планеты (шахматка 3-2-3-2): ряд из m точек берёт каждую вторую точку
   // вокруг центра диска, поэтому после наезда они стоят на расстоянии рядов чипов и выглядят точками той же сетки.
   const kc = Math.round((cam.lat0 + 84 - step / 2) / step), rowIdx = [kc + 2, kc + 1, kc, kc - 1];
-  const picked = []; let idx = 0, sy = 0, sx = 0; const yr = [];
-  G.rows.forEach((row, r) => {
-    const list = (gRows.get(rowIdx[r]) || []).map(i => { const d = dots[i], q = P0(d.cl, d.sl, d.lon); return { i, x: q[0], y: q[1], z: q[2] }; }).filter(o => o.z > 0.3 && o.x > cam.cx - cam.R && o.x < cam.cx + cam.R).sort((a, b) => a.x - b.x);
-    let m = 0, bd = 1e18; list.forEach((o, j) => { const dd = Math.abs(o.x - cam.cx); if (dd < bd) { bd = dd; m = j; } });
-    let ry = 0;
-    row.forEach((_, k) => {
-      const o = list[Math.max(0, Math.min(list.length - 1, m + 2 * (k - (row.length - 1) / 2)))];
-      chipOf[o.i] = idx; chipEls[idx].dot = o.i; idx++; sx += o.x; sy += o.y; ry += o.y; picked.push(o);
+  const rowCache = new Map();
+  const rowList = k => { let l = rowCache.get(k); if (!l) { l = (gRows.get(k) || []).map(i => { const d = dots[i], q = P0(d.cl, d.sl, d.lon); return { i, x: q[0], y: q[1], z: q[2] }; }).filter(o => o.z > 0.3 && o.x > cam.cx - cam.R && o.x < cam.cx + cam.R).sort((a, b) => a.x - b.x); rowCache.set(k, l); } return l; };
+  // площадка: ряды сдвинуты на ks рядов, центр сдвинут на xs px
+  const choose = (ks, xs) => {
+    const out = []; let land = 0;
+    G.rows.forEach((row, r) => {
+      const list = rowList(rowIdx[r] + ks); let m = 0, bd = 1e18;
+      list.forEach((o, j) => { const dd = Math.abs(o.x - (cam.cx + xs)); if (dd < bd) { bd = dd; m = j; } });
+      row.forEach((_, k) => { const o = list[Math.max(0, Math.min(list.length - 1, m + 2 * (k - (row.length - 1) / 2)))]; out.push(o); if (o && dots[o.i].land) land++; });
     });
-    yr.push(ry / row.length);
-  });
+    return { out, land };
+  };
+  let best = choose(0, 0);
+  if (live) { // планету крутили: точки есть по всей планете (суша ярче, океан темнее) — берём площадку рядом с центром, где ярких точек больше
+    let bs = best.land;
+    for (let ks = -3; ks <= 3; ks++) for (let xi = -3; xi <= 3; xi++) {
+      const c = choose(ks, xi * 0.1 * cam.R), sc = c.land - 0.35 * (Math.abs(ks) + Math.abs(xi));
+      if (c.out.every(Boolean) && sc > bs) { bs = sc; best = c; }
+    }
+  }
+  const yr = [0, 0, 0, 0]; let idx = 0, sy = 0, sx = 0;
+  G.rows.forEach((row, r) => row.forEach(() => {
+    const o = best.out[idx]; chipOf[o.i] = idx; chipEls[idx].dot = o.i; idx++; sx += o.x; sy += o.y; yr[r] += o.y / row.length;
+  }));
+  // волна гашения идёт от центра выбранной площадки (последними гаснут точки вокруг неё)
+  const cxq = sx / n, cyq = sy / n;
+  for (let i = 0; i < N; i++) { const d = dots[i], q = P0(d.cl, d.sl, d.lon); rho[i] = q[2] > 0 ? clamp01(Math.hypot(q[0] - cxq, q[1] - cyq) / cam.R) : 1; }
   const gv = Math.abs(yr[3] - yr[0]) / 3 || 1, rowPitch = lo.chipH + lo.rowGap;
   GL.zoom = fl.zoomFactor || Math.min(8, rowPitch / gv); // авто: шаг рядов сетки → шаг рядов чипов
   // центр выбранных точек после наезда приходит в центр группы чипов
@@ -927,8 +939,10 @@ function goalsDom(t) {
   fadeUp(gTitle, prog(t, gRel(GT.title)), 12); fadeUp(gSub, prog(t, gRel(GT.subtitle)), 12); fadeUp(gBtn, prog(t, gRel(GT.button)), 16);
   const lo = G.layout, d = G.flight.dotRadius * 2;
   chipEls.forEach(c => {
-    const el = c.el;
-    el.classList.toggle('live', t >= c.tg0 + GT.growMs); el.classList.toggle('done', t >= c.tDone);
+    const el = c.el, st = t < c.tg0 ? 0 : t < c.tDone ? 1 : 2;
+    if (st !== 1 && c.st === st && c.live === (t >= c.tg0 + GT.growMs)) return; // состояние не менялось: DOM не трогаем
+    c.st = st; c.live = t >= c.tg0 + GT.growMs;
+    el.classList.toggle('live', c.live); el.classList.toggle('done', t >= c.tDone);
     if (t < c.tg0) { el.style.opacity = '0'; el.style.clipPath = ''; el.style.transform = ''; c.t.style.opacity = ''; }
     else if (t < c.tDone) {
       const eg = EG.grow(prog(t, [c.tg0, c.tg0 + GT.growMs])), e = Math.min(1, eg), ix = (c.w - d) / 2 * (1 - e), iy = (lo.chipH - d) / 2 * (1 - e), rr = lerp(d / 2, lo.chipRadius, e);
@@ -1103,11 +1117,6 @@ function fadeUp(el, p, dy) { const e = E.ui(p); el.style.opacity = e.toFixed(3);
 const FLT = {};
 function render(t) {
   const g = SETTINGS.globe;
-  if (PRE.on) { // довор планеты к месту, где есть точки: кривая Безье, мягкий старт и более резкий конец
-    const u = prog(t, [PRE.t0, PRE.t0 + PRE.dur]), e = EPRE(u);
-    INT.lon = PRE.lon0 + PRE.dLon * e; INT.lat = PRE.lat0 + PRE.dLat * e;
-    if (u >= 1) { PRE.on = false; GT.start = t; goalsPick(); }
-  }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = SETTINGS.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -1128,10 +1137,13 @@ function render(t) {
   const wout = [0, 0];
   if (gst) warpPrep(t, P);
   const pfd = GT.planetFade;
+  const ringRev = gst ? 1 - prog(t, [GT.start + pfd.from, GT.start + pfd.from + pfd.durMs]) : 1; // обратная волна: 1 → 0, считается раз в кадр
+  const planetGone = gst && ringRev <= 0; // планета погасла: цикл по её точкам не нужен
   // ---- точки планеты ----
-  if (inMorph) {
+  if (inMorph && !planetGone) {
     const batch = dotBatch();
     const spread = g.revealSpread;
+    const ring = prog(t, [T.morph[1] - 250, T.morph[1] - 250 + 1300]);
     for (let i = 0; i < N; i++) {
       const d = dots[i];
       let [x, y, z, s] = P.dot(d);
@@ -1143,10 +1155,10 @@ function render(t) {
         if (t < T.morph[1]) continue;
       } else {
         // Волна идёт от занявших свои места точек наружу, с мягким проявлением каждого ряда.
-        const ringStart = T.morph[1] - 250;
-        const ring = prog(t, [ringStart, ringStart + 1300]);
-        k = E.reveal(clamp01((ring - L.reveal[i] * 0.82) / 0.18));
-        if (k <= 0) continue;
+        // (ring считается раз в кадр; когда волна точки закончилась или не началась, кривую не решаем: результат тот же — 1 или 0)
+        const arg = (ring - L.reveal[i] * 0.82) / 0.18;
+        if (arg <= 0) continue;
+        k = arg >= 1 ? 1 : E.reveal(arg);
       }
       const [r, a] = dotLook(d.land, z, s, rScale);
       let ox = 0, oy = 0, ga = 1, rk = 1;
@@ -1154,8 +1166,9 @@ function render(t) {
         const cd = GL.chipOf[i];
         if (cd >= 0) continue; // десять точек рисуются отдельно (drawChipDots)
         // Обратная волна появления планеты вокруг логотипа (то же E.reveal, 0.82/0.18, размер и k*k): дальние ряды гаснут первыми
-        const kr = E.reveal(clamp01((1 - prog(t, [GT.start + pfd.from, GT.start + pfd.from + pfd.durMs]) - GL.rho[i] * 0.82) / 0.18));
-        if (kr <= 0) continue;
+        const arg = (ringRev - GL.rho[i] * 0.82) / 0.18; // прогресс волны этой точки
+        if (arg <= 0) continue;
+        const kr = arg >= 1 ? 1 : erev(arg);
         ga = kr * kr; rk = lerp(g.revealSizeFrom, 1, kr); // сетка планеты не сдвигается: двигаются только десять точек
       }
       batch.add(x + ox, y + oy, r * rk * (k < 1 ? lerp(g.revealSizeFrom, 1, k) : 1), a * k * k * shade(y) * ga);
@@ -1370,35 +1383,17 @@ function render(t) {
 });
 
 // нажатие «Начать путешествие» (или сообщение bitt-intro-goals-start от приложения) запускает стадию «цели»
-const PRE = { on: false, t0: 0, dur: 0, lon0: 0, lat0: 0, dLon: 0, dLat: 0 };
-const EPRE = bezier(SETTINGS.goals.preRoll.ease);
-// доля суши среди точек в центре диска (там берутся десять точек)
-function landFrac(cam) {
-  const P = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy, cam.roll); let n = 0, l = 0;
-  for (let i = 0; i < N; i++) { const d = dots[i], q = P(d.cl, d.sl, d.lon); if (q[2] > 0.5 && Math.hypot(q[0] - cam.cx, q[1] - cam.cy) < cam.R * 0.4) { n++; if (d.land) l++; } }
-  return n ? l / n : 0;
-}
-// Планету крутили так, что в центре нет точек суши? Тогда её надо довернуть к расчётному виду заранее.
-function goalsPreRoll(now) {
-  const saved = GT.start; GT.start = now;
-  const sEnd = now + GT.spin[1], act = camera(sEnd, true), home = cameraBase(sEnd);
-  GT.start = saved;
-  const wrap = a => ((a + 540) % 360 + 360) % 360 - 180, d = Math.hypot(home.lat0 - act.lat0, wrap(home.lon0 - act.lon0));
-  if (d < 3 || landFrac(act) >= SETTINGS.goals.preRoll.minLandShare * landFrac(home)) return null;
-  const pr = SETTINGS.goals.preRoll;
-  return { dLat: home.lat0 - act.lat0, dLon: wrap(home.lon0 - act.lon0), dur: clamp01((pr.baseMs + pr.msPerDeg * d - pr.minMs) / (pr.maxMs - pr.minMs)) * (pr.maxMs - pr.minMs) + pr.minMs };
-}
+// E.reveal по таблице: решать кривую Безье для каждой из тысяч точек в каждом кадре дорого (на телефоне это были лишние кадры)
+const EREV = new Float32Array(513); for (let i = 0; i <= 512; i++) EREV[i] = E.reveal(i / 512);
+const erev = x => { const f = x * 512, i = Math.min(511, f | 0); return EREV[i] + (EREV[i + 1] - EREV[i]) * (f - i); };
 function startGoals() {
-  if (!G.on || !MANUAL_START || isFinite(GT.start) || PRE.on) return false;
+  if (!G.on || !MANUAL_START || isFinite(GT.start)) return false;
   if (REDUCED) { GT.start = GT.press = GT.pressAt; goalsPick(); render(gEndAbs()); return true; } // без анимации: сразу экран целей
   const now = window.__lastT ?? 0;
   if (now < T.uiLive) return false;
   GT.press = now;
-  if (INT.taken) {
-    INT.dragging = false; INT.vLon = INT.vLat = 0; INT.frozen = true;
-    const need = goalsPreRoll(now);
-    if (need) { Object.assign(PRE, { on: true, t0: now, dur: need.dur, lon0: INT.lon, lat0: INT.lat, dLon: need.dLon, dLat: need.dLat }); return true; }
-  }
+  // планету могли покрутить: останавливаем инерцию и фоновое вращение, площадку для десяти точек выбираем по тому, как она стоит сейчас
+  if (INT.taken) { INT.dragging = false; INT.vLon = INT.vLat = 0; INT.frozen = true; }
   GT.start = now; goalsPick(); return true;
 }
 bC.addEventListener('click', startGoals);
@@ -1412,11 +1407,13 @@ window.addEventListener('message', e => {
     if (goalsStopped || REDUCED) render(window.__lastT ?? T.end);
   }
 });
+const SLOW = { sum: 0, n: 0, steps: 0 };
 let start = 0, raf = 0;
 function play() {
   cancelAnimationFrame(raf); start = performance.now();
   Object.assign(INT, { taken: false, dragging: false, lon: 0, lat: 0, vLon: 0, vLat: 0, idleDeg: 0, idleK: 1, still: 0, last: null, frozen: false });
-  goalsReset(); if (G.on && MANUAL_START) { GT.start = Infinity; GT.press = Infinity; PRE.on = false; }
+  goalsReset(); if (G.on && MANUAL_START) { GT.start = Infinity; GT.press = Infinity; }
+  if (SLOW.steps) { SLOW.steps = 0; resize(); } SLOW.sum = 0; SLOW.n = 0; // перезапуск: исходное разрешение
   let prev = 0, lastDraw = 0;
   const loop = (now) => {
     const elapsed = now - start;
@@ -1425,6 +1422,10 @@ function play() {
     if (now - lastDraw >= interval) {
       const dt = prev ? Math.min(0.05, (now - prev) / 1000) : 0; prev = now; lastDraw = now;
       stepInteract(dt);
+      // адаптивное разрешение: если на стадии «цели» кадры дольше 26 мс (меньше ~38 fps), холст уменьшается на 25% (не больше двух раз, не ниже 1.2)
+      if (G.on && elapsed > GT.press && elapsed < (isFinite(GT.start) ? GT.start : GT.press) + 2400 && SLOW.steps < 2) {
+        SLOW.sum += dt * 1000; if (++SLOW.n >= 8) { if (SLOW.sum / SLOW.n > 26 && dpr * 0.75 >= 1.2) { applyDpr(dpr * 0.75); SLOW.steps++; } SLOW.sum = 0; SLOW.n = 0; }
+      }
       if (G.on && isFinite(GT.start) && elapsed >= gEndAbs()) { render(gEndAbs()); goalsStopped = true; return; } // финал: планеты нет, цикл рисования больше не нужен
       render(elapsed);
     }
@@ -1449,7 +1450,6 @@ window.intro = {
   fps: SETTINGS.fps,
   get durationMs() { return (G.on ? gEndRec() : T.end) + 500; },
   frameCount: () => Math.ceil(((G.on ? gEndRec() : T.end) + 500) / 1000 * SETTINGS.fps) + 1,
-  preRoll() { return { ...PRE, int: { lon: INT.lon, lat: INT.lat, taken: INT.taken, frozen: INT.frozen }, start: GT.start, press: GT.press }; },
   goalsInfo() { return { start: isFinite(GT.start) ? GT.start : GT.pressAt, end: isFinite(GT.start) ? gEndAbs() : gEndRec(), chips: chipEls.map(c => ({ label: c.label, x: c.x, y: c.y, w: c.w, h: c.h, cx: c.cx, cy: c.cy, t0: c.t0, tArr: c.tArr, tg0: c.tg0, tDone: c.tDone, dot: c.dot })) }; },
   goalsTrace() { return GTR.map(o => o && { ...o }); },
   selected() { return [...selected]; },
