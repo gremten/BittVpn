@@ -71,7 +71,7 @@ body.tuning canvas { cursor: grab; touch-action: none; }
 .chip.done.locked { opacity: .4; cursor: default; }       /* лимит выбора достигнут (решение автора, ЖР §73) */
 .chip.pressed { transform: scale(0.985); }
 .chip__t { display: block; }
-.goals__btn { position: absolute; left: 20px; right: 20px; bottom: calc(20px + var(--safe-bottom)); height: 56px; padding: 14px 16px; border: 0; border-radius: 999px;
+.goals__btn { position: absolute; left: 20px; right: 20px; bottom: max(54px, calc(20px + var(--safe-bottom))); height: 56px; padding: 14px 16px; border: 0; border-radius: 999px; /* как нижние кнопки заставки: 34 + 20 или 20 + safe */
   background: #2D3138; color: #9499A1; font: 400 16px/20px "Golos UI", sans-serif; opacity: 0; will-change: transform, opacity; cursor: default; }
 .goals__btn { transition: background-color .18s cubic-bezier(.25,0,.1,1), color .18s cubic-bezier(.25,0,.1,1), transform .12s cubic-bezier(.25,0,.1,1); }
 .goals__btn.ready { background: #fff; color: #0A0C0F; cursor: pointer; pointer-events: auto; } /* включена: выбрано 3–4 цели; вид как primary Button дизайн-системы (первый экран Figma 4845:2704, bg/action/primary) */
@@ -401,7 +401,8 @@ const TUNE_HASH = hash === 'tune';
 document.body.classList.toggle('debug', TUNE_HASH || hash === 'debug');
 const FIXED_T = params.has('t') ? parseFloat(params.get('t')) : hashT ? +hashT[1] : null;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const MANUAL_START = !RECORD && FIXED_T == null && !REDUCED; // живой просмотр: стадия «цели» стартует по нажатию «Продолжить»
+const EMBED = window.parent !== window; // внутри iframe приложения (или Artifact)
+const MANUAL_START = !RECORD && FIXED_T == null && (!REDUCED || EMBED); // живой просмотр: стадия «цели» стартует по нажатию «Начать путешествие» (или сообщению от приложения)
 const T = SETTINGS.timeline;
 // правка 12: моменты вылетов считаются из долей (SETTINGS.firstFlight), вызывается после создания кривых E
 function deriveFlightTimes() {
@@ -435,7 +436,7 @@ function deriveGoalsTimes() {
   GT.end = Math.round(Math.max(GT.button[1], GT.fly0 + (n - 1) * GT.staggerMs + GT.flyMs - GT.growLead + Math.max(GT.growMs, GT.textAfter * GT.growMs + GT.textMs)) + 50);
 }
 deriveGoalsTimes();
-GT.start = GT.pressAt; // момент нажатия «Продолжить»; в живом просмотре до нажатия — Infinity (play())
+GT.start = GT.pressAt; if (G.on && MANUAL_START) GT.start = Infinity; // момент нажатия «Продолжить»; в живом просмотре до нажатия — Infinity (play())
 const gEndAbs = () => GT.start + GT.end;
 const gEndRec = () => GT.pressAt + GT.end; // конец стадии в режимах записи
 const gRel = r => [GT.start + r[0], GT.start + r[1]];
@@ -589,6 +590,10 @@ chipEls.forEach((c, i) => {
   });
   c.el.addEventListener('pointerdown', () => { if (!c.el.classList.contains('locked')) c.el.classList.add('pressed'); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => c.el.addEventListener(e, () => c.el.classList.remove('pressed')));
+});
+gBtn.addEventListener('click', () => { // «Подобрать» (включена при 3–4 целях): приложение получает выбранные цели
+  if (gBtn.disabled) return;
+  try { window.parent.postMessage({ type: 'bitt-intro-goals-submit', goals: [...selected].map(i => chipEls[i].label) }, location.origin); } catch (e) {}
 });
 function goalsReset() { selected.clear(); syncChips(); syncBtn(); goalsStopped = false; }
 const GL = { chipOf: null, rho: null, zoom: 0 }; // выбор точек планеты под чипы, пересчитывается в layout()
@@ -1352,10 +1357,23 @@ function render(t) {
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => b.addEventListener(e, () => b.classList.remove('pressed')));
 });
 
-// нажатие «Продолжить» запускает стадию «цели»: кнопки и текст заставки гаснут, планета начинает поворот без паузы
-bC.addEventListener('click', () => {
-  if (!G.on || !MANUAL_START || isFinite(GT.start) || !ui.classList.contains('live')) return;
-  GT.start = window.__lastT ?? T.uiLive; goalsPick();
+// нажатие «Начать путешествие» (или сообщение bitt-intro-goals-start от приложения) запускает стадию «цели»
+function startGoals() {
+  if (!G.on || !MANUAL_START || isFinite(GT.start)) return false;
+  if (REDUCED) { GT.start = GT.pressAt; goalsPick(); render(gEndAbs()); return true; } // без анимации: сразу экран целей
+  if ((window.__lastT ?? 0) < T.uiLive) return false;
+  GT.start = window.__lastT; goalsPick(); return true;
+}
+bC.addEventListener('click', startGoals);
+// Приложение (IntroScreen): сообщения только от родителя того же origin
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || e.source !== window.parent) return;
+  const d = e.data || {};
+  if (d.type === 'bitt-intro-goals-start') startGoals();
+  if (d.type === 'bitt-intro-insets') { // верхняя безопасная зона приложения (шапка Telegram) для заголовка стадии
+    document.documentElement.style.setProperty('--safe-top', (+d.top || 0) + 'px'); resize();
+    if (goalsStopped || REDUCED) render(window.__lastT ?? T.end);
+  }
 });
 let start = 0, raf = 0;
 function play() {
@@ -1418,7 +1436,7 @@ const fontsReady = Promise.all(['400 32px "Martian Heading"', '400 16px "Golos U
 window.intro.ready = fontsReady.then(() => {
   resize();
   try { window.parent.postMessage({ type: 'bitt-intro-ready' }, location.origin); } catch (e) {}
-  if (REDUCED) { render(G.on ? gEndAbs() : T.end); return; }
+  if (REDUCED) { render(G.on && !EMBED ? gEndAbs() : T.end); return; }
   if (FIXED_T != null) { render(FIXED_T); return; }
   if (RECORD) {
     console.log('record: intro.renderFrame(i), кадров ' + window.intro.frameCount());
@@ -1435,12 +1453,12 @@ window.intro.ready = fontsReady.then(() => {
 window.addEventListener('keydown', e => { if ((e.key === 'r' || e.key === 'к') && !RECORD) play(); });
 const replay = document.getElementById('replay');
 if (RECORD || FIXED_T != null) replay.hidden = true;
-replay.addEventListener('click', () => { if (REDUCED) { render(G.on ? gEndAbs() : T.end); return; } play(); });
+replay.addEventListener('click', () => { if (REDUCED) { render(G.on && !EMBED ? gEndAbs() : T.end); return; } play(); });
 
 // ---- правка 10: жест по планете ----
 // Зона — только диск планеты выше блока текста (текст и кнопки — DOM поверх и касания не отдают). Жест работает
 // только после вступления, не в режимах записи/стоп-кадра и не во время подгонки (#tune).
-const introDone = () => (REDUCED && !G.on) || ((window.__lastT ?? 0) >= T.end && !(G.on && (window.__lastT ?? 0) > GT.start));
+const introDone = () => (REDUCED && (!G.on || !isFinite(GT.start))) || ((window.__lastT ?? 0) >= T.end && !(G.on && (window.__lastT ?? 0) > GT.start));
 function onPlanet(x, y) {
   const cam = camera(REDUCED ? T.end : window.__lastT ?? T.end);
   return y < L.textTop && Math.hypot(x - cam.cx, y - cam.cy) <= cam.R * 1.02;
