@@ -133,7 +133,7 @@ body.tuning canvas { cursor: grab; touch-action: none; }
   <div class="row"><label for="tGSpin">Поворот планеты, °</label><input type="range" id="tGSpin" min="0" max="120" step="1"><output id="oGSpin"></output></div>
   <div class="row"><label for="tGTilt">Наклон оси, °</label><input type="range" id="tGTilt" min="-40" max="40" step="0.5"><output id="oGTilt"></output></div>
   <div class="row"><label for="tGZoom">Подлёт камеры, ×</label><input type="range" id="tGZoom" min="1" max="2.5" step="0.05"><output id="oGZoom"></output></div>
-  <div class="row"><label for="tGFly">Полёт точки, мс</label><input type="range" id="tGFly" min="500" max="2400" step="10"><output id="oGFly"></output></div>
+  <div class="row"><label for="tGFly">Подгонка точек, мс</label><input type="range" id="tGFly" min="500" max="2400" step="10"><output id="oGFly"></output></div>
   <div class="row"><label for="tGStag">Разбег чипов, мс</label><input type="range" id="tGStag" min="0" max="200" step="5"><output id="oGStag"></output></div>
   <div class="actions">
     <button id="tGFrom" type="button">Кадр: старт стадии</button>
@@ -308,14 +308,14 @@ const SETTINGS = {
     timeline: {
       pressAt:    4400,        // нажатие «Продолжить»: стадия стартует ПО НАЖАТИЮ (в живом просмотре без нажатия не запускается). В #record, #t-N, #tune, reduced-motion нажатие имитируется в этот момент (за 120 мс кнопка «вдавливается»)
       spin:       [0, 2200],   // 1. поворот планеты: то же вращение и та же кривая (E.pullOut), что при вылете самолёта (≈2.2 с), справа налево
-      zoom:       [200, 1700], // камера подлетает к десяти точкам: smoothstep, как наезд `zoomIn` при вылете самолёта, и сдвиг центра, как `tracking`
+      zoom:       [100, 1900], // камера подлетает к десяти точкам: smoothstep, как наезд `zoomIn` при вылете самолёта, и сдвиг центра, как `tracking`
       markOut:    [0, 450],    // дуги, самолётики, подписи стран и красная точка RU гаснут
       uiOut:      [0, 380],    // «Добро пожаловать», подзаголовок и кнопки заставки гаснут
-      fly0:       500,         // 2. точки «пирамидки» начинают остывать и подгоняться под позиции чипов (камера уже летит)
-      flyMs:      1300,        // полёт одной точки: путь по кривой Безье, остывание до цвета чипа; шаги пирамидки плавно подгоняются под реальные позиции чипов
-      staggerMs:  35,          // разбег вылетов от чипа к чипу (порядок чтения: слева направо, сверху вниз)
-      planetFade: { from: 400, spreadMs: 600, durMs: 800 }, // остальные точки планеты гаснут, пока летит камера: от края к центру (последними — точки между «пирамидкой»)
-      growLead:   400,         // фон чипа начинает расти за столько мс ДО прилёта точки (без остановки: точка не «стоит», пока растёт чип)
+      fly0:       500,         // 2. подгонка: планета плавно смещается так, что десять точек-«пирамидка» (обычные точки планеты) встают на места чипов; окно [fly0, fly0+flyMs], камера в это время летит
+      flyMs:      1200,        // длительность подгонки (кривая ease.fly); остывание точек до цвета чипа — в её последние 35%
+      staggerMs:  40,          // разбег начала роста фона чипов (порядок чтения: слева направо, сверху вниз)
+      planetFade: { from: 300, durMs: 1300 }, // остальные точки планеты гаснут обратной волной появления (E.reveal, кольцами от края к центру, размер 35%, яркость k²), пока летит камера
+      growLead:   0,           // фон чипа начинает расти за столько мс до конца подгонки (0 = сразу после неё: точки уже на местах)
       growMs:     480,         // точка вырастает в фон чипа (clip-path: круг → скруглённый прямоугольник)
       textAfter:  0.7,         // подпись проявляется, когда фон вырос на эту долю (сначала фон, потом текст)
       textMs:     300,
@@ -328,20 +328,20 @@ const SETTINGS = {
       tilt:       [0.4, 0, 0.2, 1],
       markOut:    [0.4, 0, 0.6, 1],
       uiOut:      [0.4, 0, 0.6, 1],
-      fly:        [0.45, 0, 0.15, 1],  // мягкий отрыв, долгая посадка (как morph заставки)
+      fly:        [0.45, 0, 0.2, 1],   // подгонка: мягкий старт с нуля, долгое торможение (как pullOut заставки)
       dim:        [0.4, 0, 0.6, 1],    // точка остывает до цвета чипа
       planetFade: [0.4, 0, 0.6, 1],
       grow:       [0.25, 0, 0.1, 1],   // точка → чип
       text:       [0.25, 0, 0.1, 1],
     },
     spin: { deg: 36, tiltDeg: 8 },     // поворот как при вылете самолёта (≈36°), поверхность идёт справа налево; наклон оси — небольшой, по просьбе автора (в заставке наклон отменён, правка 7): полюс вправо, поверхность идёт влево-вверх
-    flight: { // 10 точек стоят в планете пирамидкой 3-2-3-2 (как чипы) с ровными шагами и плавно расходятся по реальным позициям чипов
+    flight: { // 10 точек — обычные точки планеты, выбранные «пирамидкой» 3-2-3-2 с ровным шагом; планета подстраивается (поле смещения), и они оказываются на местах чипов
       gridHintDeg: 2.4,                // шаг сетки точек планеты для подбора ближайшей яркой точки (синхронно с globe.dotStepDeg)
       zoomFactor: 1.5,                 // во сколько раз камера приближает планету к концу подлёта (пирамидка 3-2-3-2 раздвигается до шага чипов)
-      curl: 0.12,                      // изгиб пути точки: доля длины вбок (в сторону от центра планеты)
+
       dotRadius: 2.5,                  // px: радиус точки, из которой вырастает чип
       pyramidPitch: 0,                 // шаг «пирамидки» на экране в конце подлёта, px; 0 = средний шаг центров чипов в ряду; в планете (до подлёта) он в zoomFactor раз меньше
-      fadeDrift: 0,                 // остальные точки при угасании расходятся от центра: доля расстояния до центра
+
       chipSurface: [19, 23, 29],       // #13171d (bg/surface чипа): цвет, до которого остывает точка
     },
     layout: {                          // Figma 4845:2761: рамка 402×874, отступы 116 сверху и 20 снизу
@@ -838,59 +838,67 @@ function goalsPick() {
   const chipOf = new Int16Array(N).fill(-1), rho = new Float32Array(N), pos = new Float32Array(N * 3);
   const s0 = isFinite(GT.start) ? GT.start : GT.pressAt; // до нажатия раскладка считается по плановому моменту
   const cam = cameraBase(s0 + GT.spin[1]); // планета после поворота, до подлёта
-  const Z = fl.zoomFactor;
-  const P = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy, cam.roll);
-  const land = [], any = [];
+  const Z = fl.zoomFactor, front = [], P0 = project(cam.lat0, cam.lon0, cam.R, cam.cx, cam.cy, cam.roll);
   for (let i = 0; i < N; i++) {
-    const d = dots[i], [x, y, z] = P(d.cl, d.sl, d.lon);
+    const d = dots[i], [x, y, z] = P0(d.cl, d.sl, d.lon);
     pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
     rho[i] = z > 0 ? clamp01(Math.hypot(x - cam.cx, y - cam.cy) / cam.R) : 1;
-    if (z > 0.6) { any.push(i); if (d.land) land.push(i); }
+    if (z > 0.6) front.push(i);
   }
-  // «пирамидка» в планете: те же ряды 3-2-3-2, что у чипов, но с ровным шагом по X и Y, по центру видимого диска;
-  // каждое место занимает ближайшая яркая (суша) точка сетки планеты, поэтому снаружи это обычные точки планеты
+  // точка годится, если она похожа на соседей (суша среди суши, океан среди океана): выбранные точки не выделяются на планете
+  const st = step;
+  const blends = d => { let k = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) k += isLand(d.lat + dy * st, d.lon + dx * st); const f = k / 25; return d.land ? f >= 0.6 : f <= 0.2; };
+  // «пирамидка»: ряды 3-2-3-2 как у чипов, но с ровным шагом по X и Y, по центру диска; шаг до подлёта в zoomFactor раз меньше
   const pitches = []; let i0 = 0;
   G.rows.forEach(row => { if (row.length > 1) pitches.push((chipEls[i0 + row.length - 1].cx - chipEls[i0].cx) / (row.length - 1)); i0 += row.length; });
   const pitch = (fl.pyramidPitch || pitches.reduce((a, v) => a + v, 0) / (pitches.length || 1)) / Z, rowPitch = (lo.chipH + lo.rowGap) / Z;
-  // центр планеты приходит в центр группы чипов
   GZ.dx = W / 2 - cam.cx; GZ.dy = (chipEls[0].y + (chipEls[chipEls.length - 1].y + lo.chipH - chipEls[0].y) / 2) - cam.cy;
-  const gridPx = cam.R * G.flight.gridHintDeg * RAD;
   const used = new Set(); let idx = 0;
   G.rows.forEach((row, r) => row.forEach((_, k) => {
     const sx = cam.cx + (k - (row.length - 1) / 2) * pitch, sy = cam.cy + (r - (G.rows.length - 1) / 2) * rowPitch;
-    const near = pool => { let b = -1, bd = 1e18; for (const i of pool) { if (used.has(i)) continue; const dd = (pos[i * 3] - sx) ** 2 + (pos[i * 3 + 1] - sy) ** 2; if (dd < bd) { bd = dd; b = i; } } return [b, Math.sqrt(bd)]; };
-    let [d, dist] = near(land);
-    if (d < 0 || dist > 2 * gridPx) { const [d2] = near(any); if (d2 >= 0) d = d2; }
+    let b = -1, bd = 1e18, b2 = -1, bd2 = 1e18;
+    for (const i of front) {
+      if (used.has(i)) continue;
+      const dd = (pos[i * 3] - sx) ** 2 + (pos[i * 3 + 1] - sy) ** 2;
+      if (dd < bd2) { bd2 = dd; b2 = i; }
+      if (dd < bd && blends(dots[i])) { bd = dd; b = i; }
+    }
+    const d = b >= 0 ? b : b2;
     used.add(d); chipOf[d] = idx; chipEls[idx].dot = d; idx++;
   }));
-  chipEls.forEach(c => {
-    const px = pos[c.dot * 3], py = pos[c.dot * 3 + 1], dx = c.cx - px, dy = c.cy - py, len = Math.hypot(dx, dy) || 1;
-    const mx = (px + c.cx) / 2, my = (py + c.cy) / 2, nx = -dy / len, ny = dx / len;
-    // изгиб — в сторону от центра планеты: пути веером расходятся
-    c.sgn = Math.hypot(mx + nx - cam.cx, my + ny - cam.cy) >= Math.hypot(mx - nx - cam.cx, my - ny - cam.cy) ? 1 : -1;
-  });
   chipEls.forEach((c, i) => {
-    c.t0 = s0 + GT.fly0 + i * GT.staggerMs; c.tArr = c.t0 + GT.flyMs; c.tg0 = c.tArr - GT.growLead;
+    c.t0 = s0 + GT.fly0; c.tArr = s0 + GT.fly0 + GT.flyMs; c.tg0 = c.tArr - GT.growLead + i * GT.staggerMs;
     c.tDone = c.tg0 + Math.max(GT.growMs, GT.textAfter * GT.growMs + GT.textMs);
   });
   GL.chipOf = chipOf; GL.rho = rho;
 }
-// точки, летящие к чипам: путь — квадратичная кривая Безье от текущего места точки на вращающейся планете к центру чипа;
-// цвет остывает от яркости точки планеты до цвета чипа, радиус растёт до flight.dotRadius
+// Подгонка: планета смещается полем (интерполяция Шепарда по десяти точкам), поэтому соседние точки идут вместе с выбранными
+// и те не выглядят отдельными; в конце подгонки выбранные точки стоят ровно в центрах чипов.
+const WARP = { e: 0, px: new Float32Array(chipEls.length), py: new Float32Array(chipEls.length) };
+function warpPrep(t, P) {
+  WARP.e = EG.fly(prog(t, [GT.start + GT.fly0, GT.start + GT.fly0 + GT.flyMs]));
+  chipEls.forEach((c, i) => { const d = dots[c.dot], q = P(d.cl, d.sl, d.lon); WARP.px[i] = q[0]; WARP.py[i] = q[1]; });
+}
+function warpAt(x, y, out) {
+  let sx = 0, sy = 0, sw = 0;
+  for (let j = 0; j < chipEls.length; j++) {
+    const dx = x - WARP.px[j], dy = y - WARP.py[j], w = 1 / (dx * dx + dy * dy + 1);
+    sw += w; sx += w * (chipEls[j].cx - WARP.px[j]); sy += w * (chipEls[j].cy - WARP.py[j]);
+  }
+  out[0] = WARP.e * sx / sw; out[1] = WARP.e * sy / sw;
+}
+// Десять точек: обычный вид точки планеты → к концу подгонки остывают до цвета чипа и вырастают до dotRadius.
 function drawChipDots(t, P, rScale, shade) {
   const fl = G.flight, bg = [10, 12, 15], sf = fl.chipSurface;
+  const t1 = GT.start + GT.fly0 + GT.flyMs, d0 = t1 - 0.35 * GT.flyMs; // остывание только в конце подгонки, когда окружающая планета уже погасла: точки не выделяются раньше времени
+  const kc = EG.dim(prog(t, [d0, t1]));
   GTR.length = 0;
   chipEls.forEach((c, i) => {
-    const lin = prog(t, [c.t0, c.t0 + GT.flyMs]);
-    if (lin <= 0 || c.dot < 0) return;
-    const k = EG.fly(lin), kc = EG.dim(lin);
     const d = dots[c.dot], q = P(d.cl, d.sl, d.lon);
     const [r0, a0] = dotLook(d.land, Math.max(q[2], 0.2), q[3], rScale), a1 = a0 * shade(q[1]);
-    const x0 = q[0], y0 = q[1], dx = c.cx - x0, dy = c.cy - y0, len = Math.hypot(dx, dy) || 1;
-    const mx = (x0 + c.cx) / 2 - dy / len * fl.curl * len * c.sgn, my = (y0 + c.cy) / 2 + dx / len * fl.curl * len * c.sgn, u = 1 - k;
-    const x = u * u * x0 + 2 * u * k * mx + k * k * c.cx, y = u * u * y0 + 2 * u * k * my + k * k * c.cy, r = lerp(r0, fl.dotRadius, k);
-    GTR[i] = { x, y, r, k };
-    if (t >= c.tArr) return; // дальше точку заменяет растущий чип (тот же цвет, центр и радиус)
+    const x = lerp(q[0], c.cx, WARP.e), y = lerp(q[1], c.cy, WARP.e), r = lerp(r0, fl.dotRadius, kc);
+    GTR[i] = { x, y, r, k: WARP.e };
+    if (t >= c.tg0) return; // дальше точку заменяет растущий чип (тот же цвет, центр и радиус)
     const col = [0, 1, 2].map(j => Math.round(lerp(bg[j] + a1 * (255 - bg[j]), sf[j], kc)));
     ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
     ctx.beginPath(); ctx.arc(x * dpr, y * dpr, r * dpr, 0, Math.PI * 2); ctx.fill();
@@ -924,8 +932,8 @@ function goalsSpin(t) {
 const GZ = { dx: 0, dy: 0 }; // сдвиг центра при подлёте: центр планеты приходит в центр группы чипов
 function goalsZoom(t) {
   if (!G.on || t <= GT.start) return { s: 1, dx: 0, dy: 0 };
-  // тот же приём, что `zoomIn` при вылете самолёта: smoothstep без пика скорости; центр планеты приходит в центр чипов (как `tracking`)
-  const e = smooth(prog(t, gRel(GT.zoom)));
+  // обратный отъезд самолёта: кривая E.pullOut во времени назад (мягкий старт и мягкая посадка, без пика); центр планеты приходит в центр чипов (как `tracking`)
+  const e = 1 - E.pullOut(1 - prog(t, gRel(GT.zoom)));
   return { s: 1 + (G.flight.zoomFactor - 1) * e, dx: GZ.dx * e, dy: GZ.dy * e };
 }
 // камера без жеста пользователя и без подлёта: выбор точек-чипов не зависит от того, крутил ли человек планету
@@ -1096,7 +1104,8 @@ function render(t) {
   // ---- стадия «цели»: общие величины кадра (до старта стадии не влияют ни на что) ----
   const gst = G.on && t > GT.start && !!GL.chipOf;
   const mk = gst ? 1 - EG.markOut(prog(t, gRel(GT.markOut))) : 1; // дуги, подписи, RU гаснут
-  if (gst) chipEls.forEach((c, i) => { CF[i] = prog(t, [c.t0, c.t0 + GT.flyMs]); });
+  const wout = [0, 0];
+  if (gst) warpPrep(t, P);
   const pfd = GT.planetFade;
   // ---- точки планеты ----
   if (inMorph) {
@@ -1119,17 +1128,16 @@ function render(t) {
         if (k <= 0) continue;
       }
       const [r, a] = dotLook(d.land, z, s, rScale);
-      let ox = 0, oy = 0, ga = 1;
+      let ox = 0, oy = 0, ga = 1, rk = 1;
       if (gst) {
         const cd = GL.chipOf[i];
-        if (cd >= 0) { if (CF[cd] > 0) continue; } // точка-чип: после вылета рисуется отдельно
-        else {
-          const e = EG.planetFade(clamp01((t - GT.start - pfd.from - (1 - GL.rho[i]) * pfd.spreadMs) / pfd.durMs));
-          if (e >= 1) continue;
-          if (e > 0) { ga = 1 - e; ox = (x - cam.cx) * G.flight.fadeDrift * e; oy = (y - cam.cy) * G.flight.fadeDrift * e; }
-        }
+        if (cd >= 0) continue; // десять точек рисуются отдельно (drawChipDots)
+        // Обратная волна появления планеты вокруг логотипа (то же E.reveal, 0.82/0.18, размер и k*k): дальние ряды гаснут первыми
+        const kr = E.reveal(clamp01((1 - prog(t, [GT.start + pfd.from, GT.start + pfd.from + pfd.durMs]) - GL.rho[i] * 0.82) / 0.18));
+        if (kr <= 0) continue;
+        ga = kr * kr; rk = lerp(g.revealSizeFrom, 1, kr); warpAt(x, y, wout); ox = wout[0]; oy = wout[1]; // планета подстраивается вместе с точками
       }
-      batch.add(x + ox, y + oy, r * (k < 1 ? lerp(g.revealSizeFrom, 1, k) : 1), a * k * k * shade(y) * ga);
+      batch.add(x + ox, y + oy, r * rk * (k < 1 ? lerp(g.revealSizeFrom, 1, k) : 1), a * k * k * shade(y) * ga);
     }
     batch.fill();
   }
@@ -1382,7 +1390,7 @@ window.intro = {
   fps: SETTINGS.fps,
   get durationMs() { return (G.on ? gEndRec() : T.end) + 500; },
   frameCount: () => Math.ceil(((G.on ? gEndRec() : T.end) + 500) / 1000 * SETTINGS.fps) + 1,
-  goalsInfo() { return { start: isFinite(GT.start) ? GT.start : GT.pressAt, end: isFinite(GT.start) ? gEndAbs() : gEndRec(), chips: chipEls.map(c => ({ label: c.label, x: c.x, y: c.y, w: c.w, h: c.h, cx: c.cx, cy: c.cy, t0: c.t0, tArr: c.tArr, tDone: c.tDone, dot: c.dot })) }; },
+  goalsInfo() { return { start: isFinite(GT.start) ? GT.start : GT.pressAt, end: isFinite(GT.start) ? gEndAbs() : gEndRec(), chips: chipEls.map(c => ({ label: c.label, x: c.x, y: c.y, w: c.w, h: c.h, cx: c.cx, cy: c.cy, t0: c.t0, tArr: c.tArr, tg0: c.tg0, tDone: c.tDone, dot: c.dot })) }; },
   goalsTrace() { return GTR.map(o => o && { ...o }); },
   selected() { return [...selected]; },
   renderFrame(i) { render(i * 1000 / SETTINGS.fps); },
