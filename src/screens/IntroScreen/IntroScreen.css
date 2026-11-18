@@ -29,6 +29,17 @@
 .intro-screen--started .intro-screen__action { animation: intro-fade 350ms cubic-bezier(.25,0,.1,1) 2350ms both; pointer-events: auto; }
 @keyframes intro-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes intro-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+/* Goals stage: after «Начать путешествие» the React copy and controls fade out (380ms, as the renderer's own UI did) and the renderer
+   (iframe) shows the goals screen. */
+.intro-screen--goals .intro-screen__skip,
+.intro-screen--goals .intro-screen__copy,
+.intro-screen--goals .intro-screen__action {
+  animation: intro-fade-out 380ms cubic-bezier(.4,0,.6,1) both;
+  pointer-events: none;
+}
+.intro-screen--goals .intro-screen__skip { visibility: hidden; transition: visibility 0s linear 380ms; }
+@keyframes intro-fade-out { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) {
   .intro-screen--started .intro-screen__copy, .intro-screen--started .intro-screen__action { animation: none; opacity: 1; }
+  .intro-screen--goals .intro-screen__skip, .intro-screen--goals .intro-screen__copy, .intro-screen--goals .intro-screen__action { animation: none; opacity: 0; visibility: hidden; }
 }
